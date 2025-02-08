@@ -1,4 +1,4 @@
-echo '{
+{
   "name": "reykjavikexcursions-chat-2025",
   "version": "1.0.0",
   "description": "",
@@ -22,5 +22,4 @@ echo '{
     "uuid": "^11.0.5",
     "ws": "^8.18.0"
   }
-}' > package.json
-
+}
