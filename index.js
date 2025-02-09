@@ -394,7 +394,10 @@ app.post('/chat', verifyApiKey, async (req, res) => {
 // Start server
 const PORT = process.env.PORT || 8080;
 app.listen(PORT, () => {
+    console.log('\n=== Server Starting ===');
     console.log(`Server running on port ${PORT}`);
     console.log('Environment:', process.env.NODE_ENV || 'development');
     console.log('OpenAI API Key configured:', !!process.env.OPENAI_API_KEY);
+    console.log('API Key:', !!process.env.API_KEY ? '(configured)' : '(missing)');
+    console.log('Pusher Config:', !!process.env.PUSHER_APP_ID ? '(configured)' : '(missing)');
 });
