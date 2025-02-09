@@ -180,6 +180,11 @@ app.get('/', (req, res) => {
 // API Key verification middleware
 const verifyApiKey = (req, res, next) => {
     const apiKey = req.header('x-api-key');
+    console.log('\n=== API Key Verification ===');
+    console.log('Received API Key:', apiKey ? '(present)' : '(missing)');
+    console.log('Expected API Key:', process.env.API_KEY ? '(configured)' : '(missing)');
+    console.log('Match:', apiKey === process.env.API_KEY);
+
     if (!apiKey || apiKey !== process.env.API_KEY) {
         console.error('Invalid or missing API key');
         return res.status(401).json({ error: "Unauthorized request" });
@@ -211,6 +216,11 @@ const broadcastConversation = async (userMessage, botResponse, language, topic =
 // Chat endpoint
 app.post('/chat', verifyApiKey, async (req, res) => {
     try {
+        console.log('\n=== New Chat Request ===');
+        console.log('Time:', new Date().toISOString());
+        console.log('Message:', req.body.message);
+        console.log('Headers:', req.headers);
+
         const userMessage = req.body.message;
         const sessionId = `session_${Date.now()}`;
 
@@ -296,12 +306,14 @@ app.post('/chat', verifyApiKey, async (req, res) => {
             ];
 
             // Make OpenAI request
+            console.log('\n=== Making OpenAI Request ===');
             const completion = await openai.chat.completions.create({
                 model: "gpt-4-1106-preview",
                 messages: messages,
                 temperature: 0.7,
                 max_tokens: 500
             });
+            console.log('OpenAI Response Received');
 
             const response = completion.choices[0].message.content;
 
