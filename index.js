@@ -6,6 +6,14 @@ import rateLimit from 'express-rate-limit';
 import OpenAI from 'openai';
 import Pusher from 'pusher';
 import { v4 as uuidv4 } from 'uuid';
+import { 
+    flybusKnowledge, 
+    getRelevantKnowledge, 
+    LocationUtils,
+    updateContext,
+    getContext 
+} from './knowledgeBase.js';
+
 
 // Initialize Pusher
 const pusher = new Pusher({
@@ -21,34 +29,28 @@ const RE_GUIDELINES = {
     emojis: ['😊', '🚌', '✨', '🌅', '❄️', '📍'],    
     terminology: {
         preferred: {
-            'reykjavik excursions': 'Reykjavík Excursions',  // Correct spelling
-            're': 'Reykjavík Excursions',                    // Full name instead of abbreviation
-            'bsi': 'BSÍ Bus Terminal',                       // Full name with proper capitalization
-            'bus terminal': 'BSÍ Bus Terminal',              // Use full official name
-            'golden circle': 'Golden Circle',                // Capitalization
-            'northern lights': 'Northern Lights',            // Capitalization
-            'south coast': 'South Coast',                    // Capitalization
-            'blue lagoon': 'Blue Lagoon',                   // Capitalization
-            'pickup': 'pick-up',                            // Hyphenated version
-            'drop off': 'drop-off',                         // Hyphenated version
-            'guide': 'tour guide',                          // More specific term
-            'driver': 'professional driver',                 // More professional term
-            'bus': 'coach',                                 // More professional term
-            'trip': 'tour',                                 // Preferred term
-            'tour bus': 'coach',                           // Consistent terminology
-            'mini bus': 'mini-coach',                      // Consistent terminology
-            'guest': 'passenger'                           // Preferred term
+            'reykjavik excursions': 'Reykjavík Excursions',
+            're': 'Reykjavík Excursions',
+            'bsi': 'BSÍ Bus Terminal',
+            'bus terminal': 'BSÍ Bus Terminal',
+            'pickup': 'pick-up',
+            'drop off': 'drop-off',
+            'guide': 'tour guide',
+            'driver': 'professional driver',
+            'bus': 'coach',
+            'mini bus': 'mini-coach',
+            'guest': 'passenger'
         }
     }
 };
 
-// Greeting responses - Bilingual for Reykjavík Excursions
+// Greeting responses for Flybus
 const GREETING_RESPONSES = {
     english: [
-        "Hello! I'm your AI chatbot at Reykjavík Excursions. I can help you with tour information, bookings, and schedules. What would you like to know? 😊"
+        "Hello! I'm your AI assistant at Reykjavík Excursions. I can help you with Flybus airport transfers, schedules, and bookings. What would you like to know? 😊"
     ],
     icelandic: [
-        "Hæ! Ég er AI spjallmenni hjá Reykjavík Excursions. Hvernig get ég hjálpað? 😊"
+        "Hæ! Ég er AI aðstoðarmaður hjá Reykjavík Excursions. Ég get hjálpað þér með Flybus flugvallaleið, tímatöflur og bókanir. Hvernig get ég aðstoðað? 😊"
     ]
 };
 
@@ -121,6 +123,8 @@ const conversationContext = new Map();
 const RATE_LIMIT_MINUTES = 15;
 const RATE_LIMIT_MAX_REQUESTS = 100;
 const CACHE_TTL = 3600000; // 1 hour
+const MAX_RETRIES = 3;
+const INITIAL_RETRY_DELAY = 1000;
 
 // Initialize Express
 const app = express();
@@ -233,7 +237,80 @@ app.post('/chat', verifyApiKey, async (req, res) => {
             });
         }
 
-        // Simple acknowledgment check
+        // Initialize or get context
+        let context = getContext(sessionId);
+        if (!context) {
+            context = {
+                messages: [],
+                lastTopic: null,
+                language: isIcelandic ? 'is' : 'en'
+            };
+        }
+
+        // Get relevant knowledge
+        const knowledgeBaseResults = getRelevantKnowledge(userMessage, context);
+        
+        // If we have relevant knowledge, generate response using OpenAI
+        if (knowledgeBaseResults.relevantInfo.length > 0) {
+            // Prepare messages for OpenAI
+            const messages = [
+                {
+                    role: "system",
+                    content: `You are a helpful assistant for Reykjavík Excursions Flybus service. 
+                             Respond in ${isIcelandic ? 'Icelandic' : 'English'}. 
+                             Use only the information provided in the knowledge base.
+                             Be friendly but professional, and stay focused on Flybus-related information.`
+                },
+                {
+                    role: "user",
+                    content: `Knowledge Base Information: ${JSON.stringify(knowledgeBaseResults.relevantInfo)}
+                             
+                             User Question: ${userMessage}
+                             
+                             Please provide a natural, conversational response using ONLY the information provided.`
+                }
+            ];
+
+            // Make OpenAI request
+            const completion = await openai.chat.completions.create({
+                model: "gpt-4-1106-preview",
+                messages: messages,
+                temperature: 0.7,
+                max_tokens: 500
+            });
+
+            const response = completion.choices[0].message.content;
+
+            // Update context
+            context.messages.push({
+                role: "user",
+                content: userMessage
+            });
+            context.messages.push({
+                role: "assistant",
+                content: response
+            });
+            context.lastTopic = knowledgeBaseResults.context.lastTopic;
+            
+            // Update context in storage
+            updateContext(sessionId, context);
+
+            // Broadcast and return response
+            await broadcastConversation(
+                userMessage,
+                response,
+                isIcelandic ? 'is' : 'en',
+                context.lastTopic || 'general',
+                'gpt_response'
+            );
+
+            return res.json({
+                message: response,
+                language: isIcelandic ? 'is' : 'en'
+            });
+        }
+
+        // Fallback for simple acknowledgments
         if (userMessage.toLowerCase().match(/^(thanks|thank you|takk|þakka)/i)) {
             const response = isIcelandic ? 
                 ACKNOWLEDGMENT_RESPONSES.icelandic[0] : 
@@ -253,21 +330,21 @@ app.post('/chat', verifyApiKey, async (req, res) => {
             });
         }
 
-        // Temporary response until we implement knowledge base
-        const tempResponse = isIcelandic ?
-            "Ég er enn að læra um ferðirnar okkar. Vinsamlegast hafðu samband við þjónustuver í síma 580 5400 eða netfangið main@re.is fyrir nánari upplýsingar." :
-            "I'm still learning about our tours. Please contact our service center at 580 5400 or email main@re.is for more information.";
+        // Unknown topic response
+        const unknownResponse = isIcelandic ?
+            "Ég er ekki viss um þetta. Vinsamlegast hafðu samband við þjónustuver í síma 580 5400 eða netfangið info@icelandia.is fyrir nánari upplýsingar." :
+            "I'm not sure about that. Please contact our service center at 580 5400 or email info@icelandia.is for more information.";
 
         await broadcastConversation(
             userMessage,
-            tempResponse,
+            unknownResponse,
             isIcelandic ? 'is' : 'en',
-            'general',
-            'temp_response'
+            'unknown',
+            'direct_response'
         );
 
         return res.json({ 
-            message: tempResponse,
+            message: unknownResponse,
             language: isIcelandic ? 'is' : 'en'
         });
 
