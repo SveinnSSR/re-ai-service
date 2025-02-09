@@ -876,14 +876,62 @@ const getRelevantKnowledge = (query, context = {}) => {
     if (query.includes('hotel') || query.includes('stay') || query.includes('location') || 
         query.includes('pickup') || query.includes('where') || query.includes('bus stop') ||
         query.includes('drop') || query.includes('downtown') || query.includes('terminal')) {
-        const locationResults = LocationUtils.searchLocation(query);
-        if (locationResults.exactMatches.length > 0 || locationResults.areaMatches.length > 0) {
-            results.relevantInfo.push({
-                type: 'location',
-                data: locationResults,
-                general_info: flybusKnowledge.locations.general_info
+        
+        // Check for specific bus stop number queries
+        const busStopMatch = query.match(/bus stop (\d+)/i) || query.match(/stop (\d+)/i);
+        if (busStopMatch) {
+            const stopNumber = busStopMatch[1];
+            const stopInfo = flybusKnowledge.locations.bus_stops[stopNumber];
+            if (stopInfo) {
+                results.relevantInfo.push({
+                    type: 'bus_stop',
+                    data: {
+                        number: stopNumber,
+                        name: stopInfo.name,
+                        location: stopInfo.location_info,
+                        serviced_hotels: stopInfo.serviced_hotels,
+                        area: stopInfo.location_info.area
+                    }
+                });
+                results.confidence = 0.95;
+                return results;
+            }
+        }
+
+        // Check for hotel queries
+        let hotelName = '';
+        Object.values(flybusKnowledge.locations.bus_stops).forEach(stop => {
+            stop.serviced_hotels.forEach(hotel => {
+                if (query.toLowerCase().includes(hotel.toLowerCase())) {
+                    hotelName = hotel;
+                    results.relevantInfo.push({
+                        type: 'hotel_location',
+                        data: {
+                            hotel: hotel,
+                            bus_stop: {
+                                number: stop.number,
+                                name: stop.name,
+                                area: stop.location_info.area
+                            },
+                            pickup_instructions: "Please be ready outside the hotel 30 minutes before your scheduled departure time."
+                        }
+                    });
+                    results.confidence = 0.95;
+                }
             });
-            results.confidence = 0.9;
+        });
+
+        // If no specific matches, return general location search
+        if (results.relevantInfo.length === 0) {
+            const locationResults = LocationUtils.searchLocation(query);
+            if (locationResults.exactMatches.length > 0 || locationResults.areaMatches.length > 0) {
+                results.relevantInfo.push({
+                    type: 'location',
+                    data: locationResults,
+                    general_info: flybusKnowledge.locations.general_info
+                });
+                results.confidence = 0.9;
+            }
         }
     }
 
