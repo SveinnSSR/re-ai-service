@@ -960,16 +960,23 @@ const getRelevantKnowledge = (query, context = {}) => {
 
     // Route and journey queries
     if (query.includes('route') || query.includes('journey') || query.includes('path') || 
-        query.includes('stop') || query.includes('garðabær') || query.includes('hafnarfjörður')) {
+        query.includes('stop') || query.includes('distance') || query.includes('far') || 
+        query.includes('how long') || query.includes('minutes') || query.includes('time') ||
+        query.includes('garðabær') || query.includes('hafnarfjörður')) {
         results.relevantInfo.push({
             type: 'route',
             data: {
                 main_stops: ["Keflavík Airport", "Garðabær", "Hafnarfjörður", "BSÍ Terminal"],
                 duration: "45-50 minutes",
-                special_notes: "Additional 30 minutes for hotel drop-offs with Flybus+"
+                distance_details: "The journey from Keflavík Airport to BSÍ Bus Terminal takes about 45 minutes under normal conditions",
+                additional_info: "For Flybus+ (hotel transfer service), add approximately 30 minutes for hotel drop-offs",
+                stops_info: {
+                    gardabaer: "Optional stop at Garðabær (Aktu Taktu Gas station/Bus Stop Ásgarður C) - 5-10 minutes after BSÍ departure",
+                    hafnarfjordur: "Optional stop at Hafnarfjörður (Fjörukráin Hotel Viking) - 10-15 minutes after BSÍ departure"
+                }
             }
         });
-        results.confidence = 0.8;
+        results.confidence = 0.9;
     }
 
     // Context handling for follow-up questions
