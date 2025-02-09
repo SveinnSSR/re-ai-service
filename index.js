@@ -181,8 +181,9 @@ app.get('/', (req, res) => {
 const verifyApiKey = (req, res, next) => {
     const apiKey = req.header('x-api-key');
     console.log('\n=== API Key Verification ===');
-    console.log('Received API Key:', apiKey ? '(present)' : '(missing)');
-    console.log('Expected API Key:', process.env.API_KEY ? '(configured)' : '(missing)');
+    console.log('Received API Key:', apiKey);  // Let's see the actual key
+    console.log('Expected API Key:', process.env.API_KEY);  // And what we're expecting
+    console.log('Headers:', req.headers);  // Let's see all headers
     console.log('Match:', apiKey === process.env.API_KEY);
 
     if (!apiKey || apiKey !== process.env.API_KEY) {
