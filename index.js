@@ -249,7 +249,31 @@ app.post('/chat', verifyApiKey, async (req, res) => {
 
         // Get relevant knowledge
         const knowledgeBaseResults = getRelevantKnowledge(userMessage, context);
-        
+
+        // ADD THE NEW CODE HERE 👇
+        // Add location search if query is location-related
+        if (userMessage.toLowerCase().includes('hotel') || 
+            userMessage.toLowerCase().includes('pickup') || 
+            userMessage.toLowerCase().includes('location')) {
+            const locationResults = LocationUtils.searchLocation(userMessage);
+            if (locationResults.exactMatches.length > 0) {
+                knowledgeBaseResults.relevantInfo.push({
+                    type: 'location_details',
+                    data: locationResults
+                });
+            }
+        }
+
+        // Add basic service info if needed
+        if (knowledgeBaseResults.relevantInfo.length === 0 && 
+            userMessage.toLowerCase().includes('flybus')) {
+            knowledgeBaseResults.relevantInfo.push({
+                type: 'service_info',
+                data: flybusKnowledge.basic_info
+            });
+        }
+        // END OF NEW CODE 👆        
+
         // If we have relevant knowledge, generate response using OpenAI
         if (knowledgeBaseResults.relevantInfo.length > 0) {
             // Prepare messages for OpenAI

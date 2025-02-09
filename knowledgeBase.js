@@ -1,6 +1,6 @@
 // knowledgeBase.js - Flybus Section
 
-export const flybusKnowledge = {
+const flybusKnowledge = {
     basic_info: {
         name: "Flybus Airport Transfer",
         service_description: "Direct airport transfer service between Keflavík Airport and Reykjavík",
@@ -635,7 +635,7 @@ export const flybusKnowledge = {
 };
 
 // Fuzzy matching utilities
-export const fuzzyMatch = (text, pattern) => {
+const fuzzyMatch = (text, pattern) => {
     text = text.toLowerCase();
     pattern = pattern.toLowerCase();
     
@@ -654,9 +654,9 @@ export const fuzzyMatch = (text, pattern) => {
 };
 
 // Context awareness for multi-turn conversations
-export const conversationContext = new Map();
+const conversationContext = new Map();
 
-export const updateContext = (sessionId, newContext) => {
+const updateContext = (sessionId, newContext) => {
     const currentContext = conversationContext.get(sessionId) || {};
     conversationContext.set(sessionId, {
         ...currentContext,
@@ -665,7 +665,7 @@ export const updateContext = (sessionId, newContext) => {
     });
 };
 
-export const getContext = (sessionId) => {
+const getContext = (sessionId) => {
     const context = conversationContext.get(sessionId);
     if (!context) return null;
     
@@ -679,7 +679,7 @@ export const getContext = (sessionId) => {
 };
 
 // Enhanced search utilities for Flybus locations
-export const LocationUtils = {
+const LocationUtils = {
     normalizeIcelandic: (text) => {
         if (!text) return '';
         const charMap = {
@@ -851,7 +851,7 @@ export const LocationUtils = {
 };
 
 // Knowledge retrieval function
-export const getRelevantKnowledge = (query, context = {}) => {
+const getRelevantKnowledge = (query, context = {}) => {
     query = query.toLowerCase();
     const results = {
         relevantInfo: [],
@@ -1011,17 +1011,6 @@ export const getRelevantKnowledge = (query, context = {}) => {
 
 // Export everything together
 export {
-    flybusKnowledge,
-    fuzzyMatch,
-    conversationContext,
-    updateContext,
-    getContext,
-    LocationUtils,
-    getRelevantKnowledge
-};
-
-// Default export for convenience
-export default {
     flybusKnowledge,
     fuzzyMatch,
     conversationContext,
