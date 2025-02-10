@@ -942,7 +942,7 @@ const generateFlightResponse = (query, flightContext) => {
         }
     }
 
-    // Return more informative responses when missing info
+    // Return more informative responses when missing info.
     return {
         type: 'flight_inquiry',
         data: {
