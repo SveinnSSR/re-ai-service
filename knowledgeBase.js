@@ -850,6 +850,66 @@ const LocationUtils = {
     }
 };
 
+// Flight timing response generator
+const generateFlightResponse = (query, flightContext) => {
+    // Extract time if present in query
+    const timeMatch = query.match(/(\d{1,2})(?::\d{2})?\s*(?:am|pm)?/i);
+    const timeFromQuery = timeMatch ? timeMatch[0] : null;
+    const time = timeFromQuery || flightContext?.flightTime;
+
+    // Extract destination if present in query
+    let destination = null;
+    if (query.includes('europe')) destination = 'europe';
+    else if (query.includes('us') || query.includes('canada')) destination = 'us_canada';
+    else destination = flightContext?.flightDestination;
+
+    // If we have both time and destination, generate complete response
+    if (time && destination) {
+        // Convert time to 24h format
+        let hours = parseInt(time.match(/\d+/)[0]);
+        if (time.toLowerCase().includes('pm') && hours !== 12) hours += 12;
+        if (time.toLowerCase().includes('am') && hours === 12) hours = 0;
+
+        // Calculate required arrival time (2.5h for Europe, 3h for US/Canada)
+        const arrivalHours = destination === 'europe' ? 2.5 : 3;
+        const requiredArrival = hours - arrivalHours;
+
+        // Find appropriate bus from schedule
+        const schedule = flybusKnowledge.schedules.city_to_airport.regular_departures;
+        const appropriateBus = schedule.find(dep => {
+            const busArrivalHour = parseInt(dep.arrival.split(':')[0]);
+            return busArrivalHour <= requiredArrival;
+        });
+
+        if (appropriateBus) {
+            return {
+                type: 'flight_schedule',
+                data: {
+                    flightTime: time,
+                    destination: destination,
+                    requiredArrival: `${Math.floor(requiredArrival)}:${(requiredArrival % 1 * 60).toString().padStart(2, '0')}`,
+                    recommendedBus: appropriateBus,
+                    message: `For your ${time} flight, you should arrive at the airport by ${Math.floor(requiredArrival)}:${(requiredArrival % 1 * 60).toString().padStart(2, '0')}. ` +
+                            `I recommend taking the ${appropriateBus.bsi} bus from BSÍ Bus Terminal, which arrives at the airport at ${appropriateBus.arrival}. ` +
+                            `This gives you plenty of time to check in and go through security. Safe travels!`
+                }
+            };
+        }
+    }
+
+    // If we're missing information, return what we need
+    return {
+        type: 'flight_inquiry',
+        data: {
+            hasTime: !!time,
+            hasDestination: !!destination,
+            message: !time && !destination ? "Could you tell me your flight time and whether it's to Europe or US/Canada?" :
+                    !time ? "What time is your flight? I'll help you find the best bus connection." :
+                    "Is this flight to Europe or US/Canada? The arrival time requirements are different."
+        }
+    };
+};
+
 // Knowledge retrieval function
 const getRelevantKnowledge = (query, context = {}) => {
     query = query.toLowerCase();
@@ -953,6 +1013,21 @@ const getRelevantKnowledge = (query, context = {}) => {
                 timing_guidelines: flybusKnowledge.schedules.city_to_airport.timing_guidelines
             });
         }
+        results.confidence = 0.9;
+    }
+
+    // Add this new section in the getRelevantKnowledge function
+    if (query.includes('flight') || query.includes('departure') || 
+        query.includes('when') || query.includes('what time')) {
+        
+        const flightResponse = generateFlightResponse(query, context);
+        results.relevantInfo.push(flightResponse);
+        results.context = {
+            ...results.context,
+            lastTopic: 'flight_timing',
+            flightTime: flightResponse.data.flightTime,
+            flightDestination: flightResponse.data.destination
+        };
         results.confidence = 0.9;
     }
 
@@ -1072,5 +1147,6 @@ export {
     updateContext,
     getContext,
     LocationUtils,
-    getRelevantKnowledge
+    getRelevantKnowledge,
+    generateFlightResponse  // Add this to exports
 };
