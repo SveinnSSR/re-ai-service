@@ -124,7 +124,6 @@ const ACKNOWLEDGMENT_RESPONSES = {
 
 // Cache and state management
 const responseCache = new Map();
-const conversationContext = new Map();
 
 // Constants
 const RATE_LIMIT_MINUTES = 15;
@@ -230,7 +229,9 @@ app.post('/chat', verifyApiKey, async (req, res) => {
         console.log('Headers:', req.headers);
 
         const userMessage = req.body.message;
-        const sessionId = req.body.sessionId || `session_${Date.now()}`; // Modified to use provided sessionId
+        const sessionId = req.body.sessionId || req.headers['x-session-id'] || uuidv4();
+        console.log('\n=== Session Information ===');
+        console.log('Session ID:', sessionId);
 
         // Early language detection
         const isIcelandic = detectLanguage(userMessage);
@@ -257,20 +258,30 @@ app.post('/chat', verifyApiKey, async (req, res) => {
 
         // Initialize or get context with enhanced flight tracking
         let context = getContext(sessionId);
-        if (!context) {
+        const newContext = {
+            messages: [],
+            lastTopic: null,
+            language: isIcelandic ? 'is' : 'en',
+            flightTime: null,
+            flightDestination: null,
+            timestamp: Date.now(),
+            sessionId: sessionId  // Add sessionId to context
+        };
+
+        if (context) {
+            // Merge existing context with new data
             context = {
-                messages: [],
-                lastTopic: null,
-                language: isIcelandic ? 'is' : 'en',
-                flightTime: null,
-                flightDestination: null,
-                timestamp: Date.now()
+                ...context,
+                timestamp: Date.now(),
+                language: isIcelandic ? 'is' : 'en'
             };
-        } else {
-            // Log retrieved context
             console.log('\n=== Retrieved Existing Context ===');
             console.log('Context:', context);
             console.log('Age:', Date.now() - context.timestamp, 'ms');
+        } else {
+            context = newContext;
+            console.log('\n=== Created New Context ===');
+            console.log('New Context:', context);
         }
 
         // Enhanced flight context handling
@@ -406,7 +417,8 @@ app.post('/chat', verifyApiKey, async (req, res) => {
 
             return res.json({
                 message: response,
-                language: isIcelandic ? 'is' : 'en'
+                language: isIcelandic ? 'is' : 'en',
+                sessionId: sessionId
             });
         }
 
