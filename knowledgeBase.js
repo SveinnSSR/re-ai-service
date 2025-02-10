@@ -3,7 +3,26 @@
 const flybusKnowledge = {
     basic_info: {
         name: "Flybus Airport Transfer",
+        service_types: {
+            standard: {
+                name: ["Flybus"],
+                description: "Direct airport transfer service between Keflavík Airport and BSÍ Bus Terminal in Reykjavík",
+                oneway_price: 3999,
+                return_price: 7299
+            },
+            plus: {
+                name: ["Flybus+", "Flybus Plus", "Flybus PLUS"],
+                description: "Extended service including hotel pickup/dropoff in Reykjavík area",
+                oneway_price: 5199,
+                return_price: 9399
+            }
+        },
         service_description: "Direct airport transfer service between Keflavík Airport and Reykjavík",
+        service_guarantees: [
+            "Seats always guaranteed",
+            "Service for every arriving and departing flight",
+            "Direct transportation to/from Reykjavík"
+        ],
         highlights: [
             {
                 title: "Carbon-neutral transfer",
@@ -26,47 +45,92 @@ const flybusKnowledge = {
                 description: "Free Wi-Fi on all buses"
             }
         ],
-        keywords: ["flybus", "airport transfer", "keflavik", "reykjavik", "bsi", "shuttle"],
-        context_triggers: ["airport", "transfer", "transport", "bus", "kef", "shuttle"]
+        keywords: ["flybus", "airport transfer", "keflavik", "reykjavik", "bsi", "shuttle", "flybus+", "flybus plus", "plus"],
+        context_triggers: ["airport", "transfer", "transport", "bus", "kef", "shuttle", "plus"]
     },
 
     pricing: {
         standard: {
             name: "Flybus",
+            description: "Direct service to/from BSÍ Bus Terminal",
             rates: {
                 adult: {
-                    price: 3999,
-                    currency: "ISK"
+                    oneway: {
+                        price: 3999,
+                        currency: "ISK"
+                    },
+                    return: {
+                        price: 7299,
+                        currency: "ISK"
+                    }
                 },
                 youth: {
                     price: 2000,
                     currency: "ISK",
-                    age_range: "6-15 years"
+                    age_range: "6-15 years",
+                    oneway: {
+                        price: 2000,
+                        currency: "ISK"
+                    },
+                    return: {
+                        price: 4000,
+                        currency: "ISK"
+                    }
                 },
                 children: {
                     price: 0,
                     currency: "ISK",
-                    age_range: "1-5 years"
+                    age_range: "1-5 years",
+                    oneway: {
+                        price: 0,
+                        currency: "ISK"
+                    },
+                    return: {
+                        price: 0,
+                        currency: "ISK"
+                    }
                 }
             }
         },
         plus: {
-            name: "Flybus+",
+            name: ["Flybus+", "Flybus Plus", "Flybus PLUS"],
             description: "Includes hotel drop-off/pickup service",
             rates: {
                 adult: {
-                    price: 5199,
-                    currency: "ISK"
+                    oneway: {
+                        price: 5199,
+                        currency: "ISK"
+                    },
+                    return: {
+                        price: 9399,
+                        currency: "ISK"
+                    }
                 },
                 youth: {
                     price: 2600,
                     currency: "ISK",
-                    age_range: "6-15 years"
+                    age_range: "6-15 years",
+                    oneway: {
+                        price: 2600,
+                        currency: "ISK"
+                    },
+                    return: {
+                        price: 5200,
+                        currency: "ISK"
+                    }
                 },
                 children: {
                     price: 0,
                     currency: "ISK",
-                    age_range: "1-5 years"
+                    age_range: "1-5 years",
+                    oneway: {
+                        price: 0,
+                        currency: "ISK"
+                    },
+                    return: {
+                        price: 0,
+                        currency: "ISK"
+                    }
                 }
             }
         },
@@ -77,9 +141,11 @@ const flybusKnowledge = {
         features: [
             "Free Cancellation (according to cancellation policy)",
             "No Booking Fees",
-            "Return tickets available"
+            "Return tickets available",
+            "Guaranteed seats on all departures",
+            "Service for every arriving and departing flight"
         ],
-        keywords: ["price", "cost", "fee", "rates", "ticket", "booking"]
+        keywords: ["price", "cost", "fee", "rates", "ticket", "booking", "return", "plus", "one way", "oneway", "youth", "child", "children"]
     },
 
     schedules: {
@@ -644,6 +710,7 @@ const fuzzyMatch = (text, pattern) => {
         'keflavik': ['keflavík', 'kef', 'keflvik'],
         'reykjavik': ['reykjavík', 'reyk', 'rek'],
         'flybus': ['fly bus', 'fly-bus', 'airport bus'],
+        'flybus+': ['flybus plus', 'flybus+', 'flybus PLUS', 'flybusplus'],
         'terminal': ['termial', 'terminl'],
         'schedule': ['timetable', 'time table', 'times'],
         'luggage': ['baggage', 'bags', 'suitcase']
@@ -651,6 +718,13 @@ const fuzzyMatch = (text, pattern) => {
     
     // Check for direct matches and variations
     return variations[pattern]?.some(variant => text.includes(variant)) || text.includes(pattern);
+};
+
+// Service type detection
+const detectServiceType = (query) => {
+    query = query.toLowerCase();
+    const plusVariations = ['plus', 'flybus+', 'flybus plus', 'flybus+'];
+    return plusVariations.some(v => query.includes(v)) ? 'plus' : 'standard';
 };
 
 // Context awareness for multi-turn conversations
@@ -1113,21 +1187,38 @@ const getRelevantKnowledge = (query, context = {}) => {
     if (query.includes('price') || query.includes('cost') || query.includes('fee') || 
         query.includes('ticket') || query.includes('how much') || query.includes('book') ||
         query.includes('cancel') || query.includes('refund') || query.includes('return')) {
-        if (query.includes('plus') || query.includes('hotel') || query.includes('pickup')) {
-            results.relevantInfo.push({
-                type: 'pricing',
-                subtype: 'flybus_plus',
-                data: flybusKnowledge.pricing.plus,
-                features: flybusKnowledge.pricing.features
-            });
-        } else {
-            results.relevantInfo.push({
-                type: 'pricing',
-                subtype: 'standard',
-                data: flybusKnowledge.pricing.standard,
-                features: flybusKnowledge.pricing.features
-            });
+        
+        // Detect if user is asking about Flybus+ or standard Flybus
+        const serviceType = detectServiceType(query);
+        
+        // Check if this is a return ticket query
+        const isReturnQuery = query.includes('return') || query.includes('round trip') || 
+                            query.includes('both ways') || query.includes('two way');
+        
+        // Check for age-specific pricing
+        const isYouthQuery = query.includes('youth') || query.includes('teen') || 
+                           query.includes('young') || query.includes('student');
+        const isChildQuery = query.includes('child') || query.includes('kid') || 
+                           query.includes('baby') || query.includes('infant');
+
+        // Build pricing response
+        const pricingData = {
+            type: 'pricing',
+            subtype: serviceType,
+            data: flybusKnowledge.pricing[serviceType],
+            ticket_type: isReturnQuery ? 'return' : 'oneway',
+            features: flybusKnowledge.pricing.features,
+            limits: flybusKnowledge.pricing.limits
+        };
+
+        // Add specific age category info if requested
+        if (isYouthQuery) {
+            pricingData.highlighted_category = 'youth';
+        } else if (isChildQuery) {
+            pricingData.highlighted_category = 'children';
         }
+
+        results.relevantInfo.push(pricingData);
         results.confidence = 0.9;
     }
 
@@ -1234,5 +1325,6 @@ export {
     getContext,
     LocationUtils,
     getRelevantKnowledge,
-    generateFlightResponse  // Add this to exports
+    generateFlightResponse,
+    detectServiceType  // Add this line
 };
