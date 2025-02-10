@@ -307,20 +307,12 @@ app.post('/chat', verifyApiKey, async (req, res) => {
             };
             
             // Check for destination in current message
-            let foundDestination = false;
             for (const [key, values] of Object.entries(destinations)) {
                 if (values.some(dest => userMessage.toLowerCase().includes(dest))) {
                     context.flightDestination = key;
-                    foundDestination = true;
                     console.log('Updated destination:', key);
                     break;
                 }
-            }
-
-            // If no destination found, don't assume one
-            if (!foundDestination && !context.flightDestination) {
-                console.log('No destination specified in message or context');
-                // Don't set a default destination - let the bot ask for it
             }
             
             // Enhanced time extraction
