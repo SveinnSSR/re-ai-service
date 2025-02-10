@@ -852,39 +852,68 @@ const LocationUtils = {
 
 // Flight timing response generator
 const generateFlightResponse = (query, flightContext) => {
+    console.log('\n=== Generating Flight Response ===');
+    console.log('Query:', query);
+    console.log('Context:', flightContext);
+    
     // Extract time if present in query
-    const timeMatch = query.match(/(\d{1,2})(?::\d{2})?\s*(?:am|pm)?/i);
+    const timeMatch = query.match(/(\d{1,2})(?::(\d{2}))?\s*(am|pm)?/i);
     const timeFromQuery = timeMatch ? timeMatch[0] : null;
     const time = timeFromQuery || flightContext?.flightTime;
 
-    // Extract destination if present in query
+    // Enhanced destination extraction
     let destination = null;
-    if (query.toLowerCase().includes('europe')) destination = 'europe';
-    else if (query.toLowerCase().includes('us') || query.toLowerCase().includes('canada')) destination = 'us_canada';
-    else destination = flightContext?.flightDestination;
+    const destinationMatch = query.toLowerCase().match(/\b(to|for)\s+(us|canada|europe)\b/i);
+    if (destinationMatch) {
+        destination = destinationMatch[2].includes('europe') ? 'europe' : 'us_canada';
+    } else {
+        destination = flightContext?.flightDestination;
+    }
+
+    console.log('Extracted time:', time, 'destination:', destination);
 
     // If we have both time and destination, generate complete response
     if (time && destination) {
-        // Convert time to 24h format
+        // Enhanced time conversion to 24h format
         let hours = parseInt(time.match(/\d+/)[0]);
-        const isPM = time.toLowerCase().includes('pm');
-        if (isPM && hours !== 12) hours += 12;
-        if (!isPM && hours === 12) hours = 0;
+        const minutes = timeMatch?.[2] ? parseInt(timeMatch[2]) : 0;
+        const meridian = time.toLowerCase().match(/pm|am/)?.[0];
+        
+        // Handle AM/PM conversion
+        if (meridian === 'pm' && hours !== 12) hours += 12;
+        if (meridian === 'am' && hours === 12) hours = 0;
+        
+        console.log('Converted time:', `${hours}:${minutes}`);
 
         // Calculate required arrival time
         const arrivalHours = destination === 'europe' ? 2.5 : 3;
-        const requiredArrivalHours = hours - arrivalHours;
+        let requiredArrivalHours = hours - arrivalHours;
+        
+        // Handle overnight cases
+        if (requiredArrivalHours < 0) {
+            requiredArrivalHours += 24;
+        }
+        
+        const targetArrivalTime = requiredArrivalHours + (minutes / 60);
+        console.log('Target arrival time:', targetArrivalTime);
 
         // Find appropriate bus from schedule
-        const schedule = flybusKnowledge.schedules.city_to_airport.regular_departures;
-        const appropriateBus = schedule.reverse().find(dep => {
-            const busArrivalHour = parseInt(dep.arrival.split(':')[0]);
-            const busArrivalMinute = parseInt(dep.arrival.split(':')[1]);
-            const busArrivalTime = busArrivalHour + (busArrivalMinute / 60);
-            return busArrivalTime <= requiredArrivalHours;
+        const schedule = [...flybusKnowledge.schedules.city_to_airport.regular_departures];
+        schedule.reverse(); // Start from latest to earliest
+
+        const appropriateBus = schedule.find(dep => {
+            const [busHour, busMinute] = dep.arrival.split(':').map(num => parseInt(num));
+            const busArrivalTime = busHour + (busMinute / 60);
+            
+            // Handle overnight cases
+            const adjustedArrivalTime = busArrivalTime < 3 ? busArrivalTime + 24 : busArrivalTime;
+            const adjustedTargetTime = targetArrivalTime < 3 ? targetArrivalTime + 24 : targetArrivalTime;
+            
+            return adjustedArrivalTime <= adjustedTargetTime;
         });
 
         if (appropriateBus) {
+            // Format times for display
             const requiredArrivalFormatted = `${Math.floor(requiredArrivalHours)}:${Math.round((requiredArrivalHours % 1) * 60).toString().padStart(2, '0')}`;
             
             return {
@@ -904,17 +933,19 @@ const generateFlightResponse = (query, flightContext) => {
         }
     }
 
-    // If we're missing information, return what we need
+    // Return more informative responses when missing info
     return {
         type: 'flight_inquiry',
         data: {
             hasTime: !!time,
             hasDestination: !!destination,
-            flightTime: time,            // Add these to preserve context
+            flightTime: time,            // Preserve context
             flightDestination: destination,
-            message: !time && !destination ? "Could you tell me your flight time and whether it's to Europe or US/Canada?" :
-                    !time ? "What time is your flight? I'll help you find the best bus connection." :
-                    "Is this flight to Europe or US/Canada? The arrival time requirements are different."
+            message: !time && !destination ? 
+                "Could you tell me your flight time and whether it's to Europe or US/Canada?" :
+                !time ? 
+                "What time is your flight? I'll help you find the best bus connection." :
+                "Is this flight to Europe or US/Canada? The arrival time requirements are different."
         }
     };
 };

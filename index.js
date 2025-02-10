@@ -263,32 +263,44 @@ app.post('/chat', verifyApiKey, async (req, res) => {
                 lastTopic: null,
                 language: isIcelandic ? 'is' : 'en',
                 flightTime: null,
-                flightDestination: null
+                flightDestination: null,
+                timestamp: Date.now()
             };
+        } else {
+            // Log retrieved context
+            console.log('\n=== Retrieved Existing Context ===');
+            console.log('Context:', context);
+            console.log('Age:', Date.now() - context.timestamp, 'ms');
         }
 
-        // Check for flight-related follow-up
-        if (context.lastTopic === 'flight_timing') {
+        // Enhanced flight context handling
+        if (context.lastTopic === 'flight_timing' || 
+            userMessage.toLowerCase().includes('flight')) {
             console.log('\n=== Processing Flight Context ===');
             console.log('Previous context:', context);
             
-            // Handle destination follow-up
-            if (userMessage.toLowerCase().includes('to us') || 
-                userMessage.toLowerCase().includes('to canada')) {
-                context.flightDestination = 'us_canada';
-                console.log('Updated destination to US/Canada');
-            } else if (userMessage.toLowerCase().includes('to europe')) {
-                context.flightDestination = 'europe';
-                console.log('Updated destination to Europe');
+            // Improved destination handling with regex
+            const destinationMatch = userMessage.toLowerCase().match(/\b(to|for)\s+(us|canada|europe)\b/i);
+            if (destinationMatch) {
+                context.flightDestination = destinationMatch[2].includes('europe') ? 'europe' : 'us_canada';
+                console.log('Updated destination:', context.flightDestination);
             }
             
-            // Look for time in follow-up
-            const timeMatch = userMessage.match(/(\d{1,2})(?::\d{2})?\s*(?:am|pm)?/i);
+            // Enhanced time extraction
+            const timeMatch = userMessage.match(/(\d{1,2})(?::(\d{2}))?\s*(am|pm)?/i);
             if (timeMatch) {
                 context.flightTime = timeMatch[0];
                 console.log('Updated flight time:', context.flightTime);
             }
+
+            // Set topic if not already set
+            if (!context.lastTopic) {
+                context.lastTopic = 'flight_timing';
+            }
         }
+
+        // Update timestamp for context freshness
+        context.timestamp = Date.now();
 
         // Get relevant knowledge with enhanced context
         const knowledgeBaseResults = getRelevantKnowledge(userMessage, context);
@@ -350,16 +362,23 @@ app.post('/chat', verifyApiKey, async (req, res) => {
 
             const response = completion.choices[0].message.content;
 
-            // Update context
+            // Update context with better preservation
             context.messages.push({
                 role: "user",
-                content: userMessage
+                content: userMessage,
+                timestamp: Date.now()
             });
             context.messages.push({
                 role: "assistant",
-                content: response
+                content: response,
+                timestamp: Date.now()
             });
-            context.lastTopic = knowledgeBaseResults.context.lastTopic;
+            
+            // Preserve important context data
+            context.lastTopic = knowledgeBaseResults.context.lastTopic || context.lastTopic;
+            context.flightTime = knowledgeBaseResults.context.flightTime || context.flightTime;
+            context.flightDestination = knowledgeBaseResults.context.flightDestination || context.flightDestination;
+            context.timestamp = Date.now();
             
             // Update context in storage
             updateContext(sessionId, context);
