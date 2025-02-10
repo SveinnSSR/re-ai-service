@@ -1060,15 +1060,20 @@ const getRelevantKnowledge = (query, context = {}) => {
     if (query.includes('flight') || query.includes('departure') || 
         query.includes('when') || query.includes('what time') ||
         (context?.lastTopic === 'flight_timing' && 
-         (query.match(/^(it'?s|its)\s+at/i) || query.match(/^to\s+\w+/i)))) {
+         (query.match(/^(it'?s|its|it is|the flight is)\s+at/i) || 
+          query.match(/^to\s+\w+/i) || 
+          query.match(/(\d{1,2})(?::(\d{2}))?\s*(am|pm)?/i)))) {
         
         // For simple follow-ups, enhance the query with context
         let enhancedQuery = query;
         if (context?.lastTopic === 'flight_timing') {
-            if (query.match(/^(it'?s|its)\s+at/i)) {
-                enhancedQuery = `flight at ${query.replace(/^(it'?s|its)\s+at\s+/i, '')}`;
+            // If query has just a time, add flight context
+            if (query.match(/^(it'?s|its|it is|the flight is)\s+at/i)) {
+                enhancedQuery = `my flight is at ${query.replace(/^(it'?s|its|it is|the flight is)\s+at\s+/i, '')}`;
             } else if (query.match(/^to\s+\w+/i)) {
-                enhancedQuery = `flight ${query}`;
+                enhancedQuery = `my flight ${query}`;
+            } else if (query.match(/(\d{1,2})(?::(\d{2}))?\s*(am|pm)?/i) && !query.includes('flight')) {
+                enhancedQuery = `my flight is at ${query}`;
             }
         }
         
