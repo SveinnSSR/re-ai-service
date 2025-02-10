@@ -275,21 +275,33 @@ app.post('/chat', verifyApiKey, async (req, res) => {
 
         // Enhanced flight context handling
         if (context.lastTopic === 'flight_timing' || 
-            userMessage.toLowerCase().includes('flight')) {
+            userMessage.toLowerCase().includes('flight') ||
+            userMessage.toLowerCase().match(/\b(to|for)\s+(us|canada|europe|new york)\b/i)) {
+            
             console.log('\n=== Processing Flight Context ===');
             console.log('Previous context:', context);
             
-            // Improved destination handling with regex
-            const destinationMatch = userMessage.toLowerCase().match(/\b(to|for)\s+(us|canada|europe)\b/i);
-            if (destinationMatch) {
-                context.flightDestination = destinationMatch[2].includes('europe') ? 'europe' : 'us_canada';
-                console.log('Updated destination:', context.flightDestination);
+            // Enhanced destination handling
+            const destinations = {
+                'europe': ['europe', 'spain', 'uk', 'france', 'germany'],
+                'us_canada': ['us', 'usa', 'united states', 'canada', 'new york', 'toronto']
+            };
+            
+            // Check for destination in current message
+            for (const [key, values] of Object.entries(destinations)) {
+                if (values.some(dest => userMessage.toLowerCase().includes(dest))) {
+                    context.flightDestination = key;
+                    console.log('Updated destination:', key);
+                    break;
+                }
             }
             
             // Enhanced time extraction
-            const timeMatch = userMessage.match(/(\d{1,2})(?::(\d{2}))?\s*(am|pm)?/i);
+            const timeMatch = userMessage.match(/(\d{1,2})(?::(\d{2}))?\s*(am|pm)?\b/i) ||
+                            userMessage.match(/at\s+(\d{1,2})(?::(\d{2}))?\s*(am|pm)?\b/i);
+            
             if (timeMatch) {
-                context.flightTime = timeMatch[0];
+                context.flightTime = timeMatch[0].replace('at ', '').trim();
                 console.log('Updated flight time:', context.flightTime);
             }
 
