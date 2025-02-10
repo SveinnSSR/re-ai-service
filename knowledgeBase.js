@@ -1056,21 +1056,35 @@ const getRelevantKnowledge = (query, context = {}) => {
         results.confidence = 0.9;
     }
 
-    // Add this new section in the getRelevantKnowledge function
+    // Enhanced flight query handling
     if (query.includes('flight') || query.includes('departure') || 
-        query.includes('when') || query.includes('what time')) {
+        query.includes('when') || query.includes('what time') ||
+        (context?.lastTopic === 'flight_timing' && 
+         (query.match(/^(it'?s|its)\s+at/i) || query.match(/^to\s+\w+/i)))) {
         
-        const flightResponse = generateFlightResponse(query, context);
+        // For simple follow-ups, enhance the query with context
+        let enhancedQuery = query;
+        if (context?.lastTopic === 'flight_timing') {
+            if (query.match(/^(it'?s|its)\s+at/i)) {
+                enhancedQuery = `flight at ${query.replace(/^(it'?s|its)\s+at\s+/i, '')}`;
+            } else if (query.match(/^to\s+\w+/i)) {
+                enhancedQuery = `flight ${query}`;
+            }
+        }
+        
+        console.log('Processing flight query:', { original: query, enhanced: enhancedQuery });
+        
+        const flightResponse = generateFlightResponse(enhancedQuery, context);
         results.relevantInfo.push(flightResponse);
         results.context = {
             ...results.context,
             lastTopic: 'flight_timing',
-            flightTime: flightResponse.data.flightTime,
-            flightDestination: flightResponse.data.destination
+            flightTime: flightResponse.data.flightTime || context?.flightTime,
+            flightDestination: flightResponse.data.flightDestination || context?.flightDestination
         };
         results.confidence = 0.9;
     }
-
+    
     // Price and booking queries
     if (query.includes('price') || query.includes('cost') || query.includes('fee') || 
         query.includes('ticket') || query.includes('how much') || query.includes('book') ||
