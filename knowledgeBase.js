@@ -1257,22 +1257,81 @@ const getRelevantKnowledge = (query, context = {}) => {
         results.confidence = 0.9;
     }
     
+    // Handle yes/no responses with context
+    if (query.match(/^(yes|yeah|yep|ok)\s*$/i) && context.lastQuery) {
+        const enhancedQuery = context.lastQuery;
+        const enhancedContext = {
+            ...context,
+            isConfirmation: true
+        };
+        
+        // If last query was about return tickets, process as return ticket request
+        if (context.lastQuery.toLowerCase().includes('return')) {
+            return getRelevantKnowledge(
+                enhancedQuery + ' return',
+                enhancedContext
+            );
+        }
+        
+        return getRelevantKnowledge(enhancedQuery, enhancedContext);
+    }
+
     // Price and booking queries
     if (query.includes('price') || query.includes('cost') || query.includes('fee') || 
         query.includes('ticket') || query.includes('how much') || query.includes('book') ||
         query.includes('cancel') || query.includes('refund') || query.includes('return')) {
         
         // Detect if user is asking about Flybus+ or standard Flybus
-        const serviceType = detectServiceType(query);
+        let serviceType = detectServiceType(query);
+        
+        // Enhance service type detection with context
+        if (query.includes('hotel') || 
+            query.includes('pickup') || 
+            (query.includes('with') && context.lastTopic === 'pricing') ||
+            (context.lastServiceType === 'plus')) {
+            
+            serviceType = 'plus';
+            
+            // Update pricing information for Flybus+
+            if (results.relevantInfo.find(info => info.type === 'pricing')) {
+                results.relevantInfo = results.relevantInfo.map(info => {
+                    if (info.type === 'pricing') {
+                        return {
+                            ...info,
+                            subtype: 'plus',
+                            data: flybusKnowledge.pricing.plus
+                        };
+                    }
+                    return info;
+                });
+            }
+            
+            results.context = {
+                ...results.context,
+                lastServiceType: serviceType
+            };
+        }
         
         // Check if this is a return ticket query
-        const isReturnQuery = query.includes('return') || query.includes('round trip') || 
-                            query.includes('both ways') || query.includes('two way');
+        const isReturnQuery = query.includes('return') || 
+                            query.includes('round trip') || 
+                            query.includes('both ways') || 
+                            query.includes('two way') ||
+                            (query.toLowerCase().match(/^(yes|yeah|yep|ok)\s*$/i) && 
+                             context.lastQuery?.toLowerCase().includes('return'));
 
-        // Handle group booking if present
-        if (enrichedContext.isGroupBooking && enrichedContext.groupDetails) {
-            const { adults, youths, children } = enrichedContext.groupDetails;
-            const groupPricing = calculateGroupPrice(adults, youths, children, serviceType, isReturnQuery);
+        // Handle group booking if present or carried from context
+        const groupDetails = parseGroupDetails(query) || context.groupDetails;
+        const isGroupBooking = !!groupDetails || context.isGroupBooking;
+
+        if (isGroupBooking && groupDetails) {
+            const groupPricing = calculateGroupPrice(
+                groupDetails.adults || 0,
+                groupDetails.youths || 0,
+                groupDetails.children || 0,
+                serviceType,
+                isReturnQuery
+            );
             
             results.relevantInfo.push({
                 type: 'group_pricing',
@@ -1289,6 +1348,16 @@ const getRelevantKnowledge = (query, context = {}) => {
                 features: flybusKnowledge.pricing.features
             });
             results.confidence = 0.95;
+            
+            // Update context with group booking info
+            results.context = {
+                ...results.context,
+                lastServiceType: serviceType,
+                isGroupBooking: true,
+                groupDetails,
+                lastQuery: query
+            };
+            
             return results;
         }
         
@@ -1448,8 +1517,12 @@ const getRelevantKnowledge = (query, context = {}) => {
     // Update context for next query
     if (results.relevantInfo.length > 0) {
         results.context = {
-            ...enrichedContext,
+            ...context,
+            ...results.context,
             lastTopic: results.relevantInfo[0].type,
+            lastServiceType: results.context.lastServiceType || context.lastServiceType,
+            isGroupBooking: results.context.isGroupBooking || context.isGroupBooking,
+            groupDetails: results.context.groupDetails || context.groupDetails,
             lastQuery: query,
             timestamp: Date.now()
         };
