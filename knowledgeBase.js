@@ -1114,6 +1114,14 @@ const getRelevantKnowledge = (query, context = {}) => {
     // Context handling for follow-up questions
     if (context.lastTopic && results.relevantInfo.length === 0) {
         switch (context.lastTopic) {
+            case 'flight_timing':
+                const flightResponse = generateFlightResponse(query, context);
+                if (flightResponse.type === 'flight_schedule' || 
+                    (context.flightTime && query.toLowerCase().match(/to (us|canada|europe)/i))) {
+                    results.relevantInfo.push(flightResponse);
+                    results.confidence = 0.9;
+                }
+                break;
             case 'location':
                 results.relevantInfo.push({
                     type: 'location',

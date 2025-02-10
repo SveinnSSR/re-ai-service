@@ -230,7 +230,7 @@ app.post('/chat', verifyApiKey, async (req, res) => {
         console.log('Headers:', req.headers);
 
         const userMessage = req.body.message;
-        const sessionId = `session_${Date.now()}`;
+        const sessionId = req.body.sessionId || `session_${Date.now()}`; // Modified to use provided sessionId
 
         // Early language detection
         const isIcelandic = detectLanguage(userMessage);
@@ -255,17 +255,42 @@ app.post('/chat', verifyApiKey, async (req, res) => {
             });
         }
 
-        // Initialize or get context
+        // Initialize or get context with enhanced flight tracking
         let context = getContext(sessionId);
         if (!context) {
             context = {
                 messages: [],
                 lastTopic: null,
-                language: isIcelandic ? 'is' : 'en'
+                language: isIcelandic ? 'is' : 'en',
+                flightTime: null,
+                flightDestination: null
             };
         }
 
-        // Get relevant knowledge
+        // Check for flight-related follow-up
+        if (context.lastTopic === 'flight_timing') {
+            console.log('\n=== Processing Flight Context ===');
+            console.log('Previous context:', context);
+            
+            // Handle destination follow-up
+            if (userMessage.toLowerCase().includes('to us') || 
+                userMessage.toLowerCase().includes('to canada')) {
+                context.flightDestination = 'us_canada';
+                console.log('Updated destination to US/Canada');
+            } else if (userMessage.toLowerCase().includes('to europe')) {
+                context.flightDestination = 'europe';
+                console.log('Updated destination to Europe');
+            }
+            
+            // Look for time in follow-up
+            const timeMatch = userMessage.match(/(\d{1,2})(?::\d{2})?\s*(?:am|pm)?/i);
+            if (timeMatch) {
+                context.flightTime = timeMatch[0];
+                console.log('Updated flight time:', context.flightTime);
+            }
+        }
+
+        // Get relevant knowledge with enhanced context
         const knowledgeBaseResults = getRelevantKnowledge(userMessage, context);
 
         // ADD THE NEW CODE HERE 👇
