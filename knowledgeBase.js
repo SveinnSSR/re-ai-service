@@ -863,24 +863,20 @@ const generateFlightResponse = (query, flightContext) => {
 
     // Enhanced destination extraction
     let destination = null;
-    const destinations = {
-        'europe': ['europe', 'spain', 'uk', 'france', 'germany'],
-        'us_canada': ['us', 'usa', 'united states', 'canada', 'new york', 'toronto']
-    };
-
-    // First check current query
-    for (const [key, values] of Object.entries(destinations)) {
-        if (values.some(dest => query.toLowerCase().includes(dest))) {
-            destination = key;
-            console.log('Found destination in query:', key);
-            break;
-        }
-    }
-
-    // If no destination in query, use context but don't assume default
-    if (!destination) {
+    const destinationMatch = query.toLowerCase().match(/\b(to|for)\s+(us|canada|europe)\b/i);
+    if (destinationMatch) {
+        destination = destinationMatch[2].includes('europe') ? 'europe' : 'us_canada';
+    } else if (query.toLowerCase().includes('europe') || 
+               query.toLowerCase().includes('spain') || 
+               query.toLowerCase().includes('france')) {
+        destination = 'europe';
+    } else if (query.toLowerCase().includes('us') || 
+               query.toLowerCase().includes('usa') || 
+               query.toLowerCase().includes('canada') || 
+               query.toLowerCase().includes('new york')) {
+        destination = 'us_canada';
+    } else {
         destination = flightContext?.flightDestination;
-        console.log('Using destination from context:', destination);
     }
 
     console.log('Extracted time:', time, 'destination:', destination);
