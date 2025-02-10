@@ -1057,24 +1057,34 @@ const getRelevantKnowledge = (query, context = {}) => {
     }
 
     // Enhanced flight query handling
-    if (query.includes('flight') || query.includes('departure') || 
-        query.includes('when') || query.includes('what time') ||
-        (context?.lastTopic === 'flight_timing' && 
-         (query.match(/^(it'?s|its|it is|the flight is)\s+at/i) || 
-          query.match(/^to\s+\w+/i) || 
-          query.match(/(\d{1,2})(?::(\d{2}))?\s*(am|pm)?/i)))) {
-        
+    const isTimeResponse = query.match(/(\d{1,2})(?::(\d{2}))?\s*(am|pm)?/i);
+    const isFlightRelated = query.includes('flight') || 
+                           query.includes('departure') || 
+                           query.includes('when') || 
+                           query.includes('what time');
+    
+    // Check if this is a follow-up time response to a flight question
+    const isFollowUpTime = context?.lastTopic === 'flight_timing' && 
+                          (query.match(/^(it'?s|its|it is|at)\s+/i) || 
+                           isTimeResponse);
+
+    if (isFlightRelated || isFollowUpTime) {
         // For simple follow-ups, enhance the query with context
         let enhancedQuery = query;
+        
+        // If this is a follow-up time response, treat it as a flight time
         if (context?.lastTopic === 'flight_timing') {
-            // If query has just a time, add flight context
-            if (query.match(/^(it'?s|its|it is|the flight is)\s+at/i)) {
-                enhancedQuery = `my flight is at ${query.replace(/^(it'?s|its|it is|the flight is)\s+at\s+/i, '')}`;
+            if (isTimeResponse && !query.toLowerCase().includes('flight')) {
+                // Extract just the time part if it's a plain time
+                const timeMatch = query.match(/(\d{1,2}(?::(?:\d{2}))?\s*(?:am|pm)?)/i);
+                const timeStr = timeMatch ? timeMatch[1] : query;
+                enhancedQuery = `my flight is at ${timeStr}`;
+            } else if (query.match(/^(it'?s|its|it is|at)\s+/i)) {
+                enhancedQuery = `my flight is ${query.replace(/^(it'?s|its|it is|at)\s+/i, '')}`;
             } else if (query.match(/^to\s+\w+/i)) {
                 enhancedQuery = `my flight ${query}`;
-            } else if (query.match(/(\d{1,2})(?::(\d{2}))?\s*(am|pm)?/i) && !query.includes('flight')) {
-                enhancedQuery = `my flight is at ${query}`;
             }
+            console.log('Enhanced flight query:', enhancedQuery);
         }
         
         console.log('Processing flight query:', { original: query, enhanced: enhancedQuery });

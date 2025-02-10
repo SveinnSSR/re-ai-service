@@ -255,7 +255,12 @@ app.post('/chat', verifyApiKey, async (req, res) => {
 
             return res.json({ 
                 message: response,
-                language: isIcelandic ? 'is' : 'en'
+                language: isIcelandic ? 'is' : 'en',
+                context: {
+                    lastTopic: null,
+                    flightTime: null,
+                    flightDestination: null
+                }
             });
         }
 
@@ -388,7 +393,7 @@ app.post('/chat', verifyApiKey, async (req, res) => {
 
             const response = completion.choices[0].message.content;
 
-            // Update context with better preservation
+            // Update messages with timestamps
             context.messages.push({
                 role: "user",
                 content: userMessage,
@@ -400,11 +405,50 @@ app.post('/chat', verifyApiKey, async (req, res) => {
                 timestamp: Date.now()
             });
             
-            // Preserve important context data
+            // Preserve flight context
+            if (context.lastTopic === 'flight_timing') {
+                // Check for time in current message
+                const timeMatch = userMessage.match(/(\d{1,2})(?::(\d{2}))?\s*(am|pm)?/i);
+                if (timeMatch) {
+                    context.flightTime = timeMatch[0];
+                    console.log('Preserved flight time:', context.flightTime);
+                }
+
+                // Check for destination in current message
+                const destinations = {
+                    'europe': ['europe', 'spain', 'uk', 'france', 'germany'],
+                    'us_canada': ['us', 'usa', 'united states', 'canada', 'new york', 'toronto']
+                };
+
+                for (const [key, values] of Object.entries(destinations)) {
+                    if (values.some(dest => userMessage.toLowerCase().includes(dest))) {
+                        context.flightDestination = key;
+                        console.log('Preserved destination:', key);
+                        break;
+                    }
+                }
+            }
+
+            // Preserve important context data with logging
+            const previousTopic = context.lastTopic;
             context.lastTopic = knowledgeBaseResults.context.lastTopic || context.lastTopic;
             context.flightTime = knowledgeBaseResults.context.flightTime || context.flightTime;
             context.flightDestination = knowledgeBaseResults.context.flightDestination || context.flightDestination;
             context.timestamp = Date.now();
+
+            // Log context changes
+            console.log('Context Update:', {
+                previousTopic,
+                newTopic: context.lastTopic,
+                flightTime: context.flightTime,
+                destination: context.flightDestination
+            });
+            
+            // Always preserve context type if responding to a flight query
+            if (userMessage.toLowerCase().includes('flight') || 
+                context.lastTopic === 'flight_timing') {
+                context.lastTopic = 'flight_timing';
+            }
             
             // Update context in storage
             updateContext(sessionId, context);
@@ -421,7 +465,12 @@ app.post('/chat', verifyApiKey, async (req, res) => {
             return res.json({
                 message: response,
                 language: isIcelandic ? 'is' : 'en',
-                sessionId: sessionId
+                sessionId: sessionId,
+                context: {  // Add context info to response
+                    lastTopic: context.lastTopic,
+                    flightTime: context.flightTime,
+                    flightDestination: context.flightDestination
+                }
             });
         }
 
@@ -442,7 +491,12 @@ app.post('/chat', verifyApiKey, async (req, res) => {
             return res.json({ 
                 message: response,
                 language: isIcelandic ? 'is' : 'en',
-                sessionId: sessionId  // Add to every response
+                sessionId: sessionId,
+                context: {
+                    lastTopic: 'acknowledgment',
+                    flightTime: context?.flightTime || null,
+                    flightDestination: context?.flightDestination || null
+                }
             });
         }
 
@@ -462,13 +516,27 @@ app.post('/chat', verifyApiKey, async (req, res) => {
         return res.json({ 
             message: unknownResponse,
             language: isIcelandic ? 'is' : 'en',
-            sessionId: sessionId  // Add to every response
+            sessionId: sessionId,  // Add to every response
+            context: {
+                lastTopic: context?.lastTopic || null,
+                flightTime: context?.flightTime || null,
+                flightDestination: context?.flightDestination || null
+            }
         });
 
     } catch (error) {
         console.error('Error in chat endpoint:', error);
         const errorMessage = "I apologize, but I'm having trouble processing your request right now. Please try again shortly.";
-        return res.status(500).json({ message: errorMessage });
+        return res.status(500).json({ 
+            message: errorMessage,
+            language: isIcelandic ? 'is' : 'en',
+            sessionId: sessionId,
+            context: {
+                lastTopic: context?.lastTopic || null,
+                flightTime: context?.flightTime || null,
+                flightDestination: context?.flightDestination || null
+            }
+        });
     }
 });
 
