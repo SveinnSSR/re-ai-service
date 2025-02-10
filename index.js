@@ -44,14 +44,77 @@ const RE_GUIDELINES = {
     }
 };
 
-// Greeting responses for Flybus
+
+// Greeting responses for Flybus (for follow up greeting only) (with Icelandic support for future use)
 const GREETING_RESPONSES = {
     english: [
-        "Hello! I'm your AI assistant at Reykjavík Excursions. I can help you with Flybus airport transfers, schedules, and bookings. What would you like to know? 😊"
+        "How can I assist you today?",
+        "What would you like to know about Flybus?",
+        "How can I help you with your airport transfer?",
+        "What information would you like about our services?",
+        "I'd be happy to help. What would you like to know?"
     ],
     icelandic: [
-        "Hæ! Ég er AI aðstoðarmaður hjá Reykjavík Excursions. Ég get hjálpað þér með Flybus flugvallaleið, tímatöflur og bókanir. Hvernig get ég aðstoðað? 😊"
+        // Keeping structure for future bilingual support
+        "Hvernig get ég aðstoðað?"
     ]
+};
+
+// Enhanced acknowledgment system with categories and language support
+const ACKNOWLEDGMENT_RESPONSES = {
+    english: {
+        thanks: [
+            "You're welcome! Let me know if you need anything else.",
+            "Happy to help! What else would you like to know?",
+            "Glad I could assist! Any other questions?",
+            "You're welcome! Feel free to ask if you have more questions."
+        ],
+        confirmation: [
+            "Is there anything else you'd like to know?",
+            "What else can I help you with?",
+            "Would you like any other information?",
+            "Feel free to ask any other questions about Flybus."
+        ],
+        positive: [
+            "Wonderful! What else would you like to know?",
+            "Excellent! I'm here if you have more questions.",
+            "Great! Let me know if you need anything else.",
+            "Perfect! Feel free to ask about anything else."
+        ]
+    },
+    icelandic: {
+        // Structure maintained for future use
+        thanks: ["Minnsta málið! Ef þú hefur fleiri spurningar eða þarft aðstoð, láttu mig vita!"],
+        confirmation: ["Get ég aðstoðað þig með eitthvað fleira?"],
+        positive: ["Frábært! Get ég aðstoðað þig með eitthvað annað?"]
+    }
+};
+
+// Helper functions for greeting and acknowledgment detection
+const isGreeting = (message) => {
+    const greetingPatterns = [
+        /^(hi|hello|hey|good morning|good afternoon|good evening)$/i,
+        /^(hi|hello|hey|good)\s+(there|everyone|all|morning|afternoon|evening)$/i
+    ];
+    return greetingPatterns.some(pattern => pattern.test(message.trim()));
+};
+
+const getAcknowledgmentType = (message) => {
+    const msg = message.toLowerCase().trim();
+    
+    if (/^(thanks|thank you|thx|ty|thank)/i.test(msg)) {
+        return 'thanks';
+    }
+    
+    if (/^(ok|okay|got it|i see|alright|sure|right|understood)\b/i.test(msg)) {
+        return 'confirmation';
+    }
+    
+    if (/^(great|perfect|good|excellent|wonderful|awesome|nice|brilliant)\b/i.test(msg)) {
+        return 'positive';
+    }
+    
+    return null;
 };
 
 // Language detection patterns for RE-specific terms
@@ -104,23 +167,6 @@ const detectLanguage = (message) => {
     return icelandicStarters.some(starter => msg.startsWith(starter));
 };
 */
-
-const ACKNOWLEDGMENT_RESPONSES = {
-    english: [
-        "What else would you like to know about our tours?",
-        "Is there anything specific about our tours you'd like to learn more about?",
-        "Would you like information about any other tours?",
-        "What other tour information can I help you with?",
-        "Feel free to ask about any of our other tours or services!"
-    ],
-    icelandic: [
-        "Hvað annað viltu vita um ferðirnar okkar?",
-        "Er eitthvað sérstakt varðandi ferðirnar sem þú vilt fræðast meira um?",
-        "Viltu upplýsingar um aðrar ferðir?",
-        "Hvaða aðrar upplýsingar get ég veitt þér um ferðirnar?",
-        "Ekki hika við að spyrja um aðrar ferðir eða þjónustu!"
-    ]
-};
 
 // Cache and state management
 const responseCache = new Map();
@@ -240,10 +286,11 @@ app.post('/chat', verifyApiKey, async (req, res) => {
         const isIcelandic = detectLanguage(userMessage);
         
         // Check for greeting
-        if (userMessage.toLowerCase().match(/^(hi|hello|hey|hæ|halló|sæl)/i)) {
-            const response = isIcelandic ? 
-                GREETING_RESPONSES.icelandic[0] : 
-                GREETING_RESPONSES.english[0];
+        if (isGreeting(userMessage)) {
+            const greetings = isIcelandic ? 
+                GREETING_RESPONSES.icelandic : 
+                GREETING_RESPONSES.english;
+            const response = greetings[Math.floor(Math.random() * greetings.length)];
 
             await broadcastConversation(
                 userMessage,
@@ -256,8 +303,9 @@ app.post('/chat', verifyApiKey, async (req, res) => {
             return res.json({ 
                 message: response,
                 language: isIcelandic ? 'is' : 'en',
+                sessionId: sessionId,
                 context: {
-                    lastTopic: null,
+                    lastTopic: 'greeting',
                     flightTime: null,
                     flightDestination: null
                 }
@@ -474,11 +522,13 @@ app.post('/chat', verifyApiKey, async (req, res) => {
             });
         }
 
-        // Fallback for simple acknowledgments
-        if (userMessage.toLowerCase().match(/^(thanks|thank you|takk|þakka)/i)) {
-            const response = isIcelandic ? 
-                ACKNOWLEDGMENT_RESPONSES.icelandic[0] : 
-                ACKNOWLEDGMENT_RESPONSES.english[0];
+        // Check for acknowledgments
+        const ackType = getAcknowledgmentType(userMessage);
+        if (ackType) {
+            const responses = isIcelandic ? 
+                ACKNOWLEDGMENT_RESPONSES.icelandic[ackType] : 
+                ACKNOWLEDGMENT_RESPONSES.english[ackType];
+            const response = responses[Math.floor(Math.random() * responses.length)];
 
             await broadcastConversation(
                 userMessage,
@@ -493,7 +543,7 @@ app.post('/chat', verifyApiKey, async (req, res) => {
                 language: isIcelandic ? 'is' : 'en',
                 sessionId: sessionId,
                 context: {
-                    lastTopic: 'acknowledgment',
+                    lastTopic: context?.lastTopic || 'acknowledgment',
                     flightTime: context?.flightTime || null,
                     flightDestination: context?.flightDestination || null
                 }
