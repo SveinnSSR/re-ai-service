@@ -70,7 +70,13 @@ const tourRelatedTerms = {
     ]
 };
 
-// Enhanced language detection function
+// Simple language detection - always returns English for demo
+const detectLanguage = (message) => {
+    return false;  // Always return false to indicate English
+};
+
+/*
+// Enhanced language detection function - for future bilingual support
 const detectLanguage = (message) => {
     if (!message) return false;
     
@@ -97,6 +103,7 @@ const detectLanguage = (message) => {
 
     return icelandicStarters.some(starter => msg.startsWith(starter));
 };
+*/
 
 const ACKNOWLEDGMENT_RESPONSES = {
     english: [
