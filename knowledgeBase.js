@@ -863,11 +863,24 @@ const generateFlightResponse = (query, flightContext) => {
 
     // Enhanced destination extraction
     let destination = null;
-    const destinationMatch = query.toLowerCase().match(/\b(to|for)\s+(us|canada|europe)\b/i);
-    if (destinationMatch) {
-        destination = destinationMatch[2].includes('europe') ? 'europe' : 'us_canada';
-    } else {
+    const destinations = {
+        'europe': ['europe', 'spain', 'uk', 'france', 'germany'],
+        'us_canada': ['us', 'usa', 'united states', 'canada', 'new york', 'toronto']
+    };
+
+    // First check current query
+    for (const [key, values] of Object.entries(destinations)) {
+        if (values.some(dest => query.toLowerCase().includes(dest))) {
+            destination = key;
+            console.log('Found destination in query:', key);
+            break;
+        }
+    }
+
+    // If no destination in query, use context but don't assume default
+    if (!destination) {
         destination = flightContext?.flightDestination;
+        console.log('Using destination from context:', destination);
     }
 
     console.log('Extracted time:', time, 'destination:', destination);
@@ -942,10 +955,10 @@ const generateFlightResponse = (query, flightContext) => {
             flightTime: time,            // Preserve context
             flightDestination: destination,
             message: !time && !destination ? 
-                "Could you tell me your flight time and whether it's to Europe or US/Canada?" :
+                "To assist you better, could you please provide me with the departure time of your flight and the destination? This information will help me determine the best time for you to take the Flybus." :
                 !time ? 
                 "What time is your flight? I'll help you find the best bus connection." :
-                "Is this flight to Europe or US/Canada? The arrival time requirements are different."
+                "Could you let me know if your flight is to Europe or to the US/Canada? This will help me provide the correct arrival time recommendation as the requirements are different."
         }
     };
 };
