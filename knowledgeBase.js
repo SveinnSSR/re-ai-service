@@ -752,6 +752,76 @@ const getContext = (sessionId) => {
     return context;
 };
 
+// Add new functions here, after getContext and before LocationUtils
+const enrichContext = (context, query) => {
+    const serviceType = detectServiceType(query);
+    const groupMatch = query.match(/(\d+)\s*(adult|child|children|youth|teenager)/gi);
+    const isGroupBooking = groupMatch !== null;
+    
+    return {
+        ...context,
+        lastServiceType: serviceType,
+        isGroupBooking,
+        groupDetails: isGroupBooking ? parseGroupDetails(query) : null,
+        lastQuery: query,
+        timestamp: Date.now()
+    };
+};
+
+const parseGroupDetails = (query) => {
+    const counts = {
+        adults: 0,
+        youths: 0,
+        children: 0
+    };
+    
+    // Match patterns like "2 adults", "3 children", etc.
+    const matches = query.matchAll(/(\d+)\s*(adult|child|children|youth|teenager)s?/gi);
+    for (const match of matches) {
+        const count = parseInt(match[1]);
+        const type = match[2].toLowerCase();
+        
+        if (type.startsWith('adult')) {
+            counts.adults += count;
+        } else if (type.startsWith('youth') || type.includes('teen')) {
+            counts.youths += count;
+        } else if (type.startsWith('child')) {
+            counts.children += count;
+        }
+    }
+    
+    return counts;
+};
+
+const calculateGroupPrice = (adults, youths, children, serviceType, isReturn) => {
+    const pricing = flybusKnowledge.pricing[serviceType];
+    return {
+        total: (adults * pricing.rates.adult[isReturn ? 'return' : 'oneway'].price) +
+               (youths * pricing.rates.youth[isReturn ? 'return' : 'oneway'].price),
+        breakdown: {
+            adults: {
+                count: adults,
+                price: pricing.rates.adult[isReturn ? 'return' : 'oneway'].price,
+                subtotal: adults * pricing.rates.adult[isReturn ? 'return' : 'oneway'].price
+            },
+            youths: {
+                count: youths,
+                price: pricing.rates.youth[isReturn ? 'return' : 'oneway'].price,
+                subtotal: youths * pricing.rates.youth[isReturn ? 'return' : 'oneway'].price
+            },
+            children: {
+                count: children,
+                price: 0,
+                subtotal: 0
+            }
+        },
+        limits: {
+            youthExceeded: youths > adults * flybusKnowledge.pricing.limits.youth_per_adult,
+            childrenExceeded: children > adults * flybusKnowledge.pricing.limits.children_per_adult
+        }
+    };
+};
+
 // Enhanced search utilities for Flybus locations
 const LocationUtils = {
     normalizeIcelandic: (text) => {
@@ -1036,9 +1106,13 @@ const generateFlightResponse = (query, flightContext) => {
 // Knowledge retrieval function
 const getRelevantKnowledge = (query, context = {}) => {
     query = query.toLowerCase();
+    
+    // Enrich context with new information
+    const enrichedContext = enrichContext(context, query);
+    
     const results = {
         relevantInfo: [],
-        context: {},
+        context: enrichedContext,
         confidence: 0
     };
 
@@ -1194,6 +1268,29 @@ const getRelevantKnowledge = (query, context = {}) => {
         // Check if this is a return ticket query
         const isReturnQuery = query.includes('return') || query.includes('round trip') || 
                             query.includes('both ways') || query.includes('two way');
+
+        // Handle group booking if present
+        if (enrichedContext.isGroupBooking && enrichedContext.groupDetails) {
+            const { adults, youths, children } = enrichedContext.groupDetails;
+            const groupPricing = calculateGroupPrice(adults, youths, children, serviceType, isReturnQuery);
+            
+            results.relevantInfo.push({
+                type: 'group_pricing',
+                subtype: serviceType,
+                data: {
+                    ...groupPricing,
+                    service_type: serviceType,
+                    ticket_type: isReturnQuery ? 'return' : 'oneway',
+                    warning: groupPricing.limits.youthExceeded ? 
+                        'Warning: Youth limit exceeded. Maximum 40 youth tickets per adult.' :
+                        groupPricing.limits.childrenExceeded ?
+                        'Warning: Children limit exceeded. Maximum 2 children per adult.' : null
+                },
+                features: flybusKnowledge.pricing.features
+            });
+            results.confidence = 0.95;
+            return results;
+        }
         
         // Check for age-specific pricing
         const isYouthQuery = query.includes('youth') || query.includes('teen') || 
@@ -1272,12 +1369,12 @@ const getRelevantKnowledge = (query, context = {}) => {
     }
 
     // Context handling for follow-up questions
-    if (context.lastTopic && results.relevantInfo.length === 0) {
-        switch (context.lastTopic) {
+    if (enrichedContext.lastTopic && results.relevantInfo.length === 0) {
+        switch (enrichedContext.lastTopic) {
             case 'flight_timing':
-                const flightResponse = generateFlightResponse(query, context);
+                const flightResponse = generateFlightResponse(query, enrichedContext);
                 if (flightResponse.type === 'flight_schedule' || 
-                    (context.flightTime && query.toLowerCase().match(/to (us|canada|europe)/i))) {
+                    (enrichedContext.flightTime && query.toLowerCase().match(/to (us|canada|europe)/i))) {
                     results.relevantInfo.push(flightResponse);
                     results.confidence = 0.9;
                 }
@@ -1295,18 +1392,63 @@ const getRelevantKnowledge = (query, context = {}) => {
                 });
                 break;
             case 'pricing':
-                results.relevantInfo.push({
-                    type: 'pricing',
-                    data: flybusKnowledge.pricing
-                });
+                if (enrichedContext.isGroupBooking) {
+                    const { adults, youths, children } = enrichedContext.groupDetails;
+                    const serviceType = enrichedContext.lastServiceType || 'standard';
+                    const isReturnQuery = query.includes('return');
+                    
+                    const groupPricing = calculateGroupPrice(adults, youths, children, serviceType, isReturnQuery);
+                    results.relevantInfo.push({
+                        type: 'group_pricing',
+                        subtype: serviceType,
+                        data: {
+                            ...groupPricing,
+                            service_type: serviceType,
+                            ticket_type: isReturnQuery ? 'return' : 'oneway',
+                            warning: groupPricing.limits.youthExceeded ? 
+                                'Warning: Youth limit exceeded. Maximum 40 youth tickets per adult.' :
+                                groupPricing.limits.childrenExceeded ?
+                                'Warning: Children limit exceeded. Maximum 2 children per adult.' : null
+                        },
+                        features: flybusKnowledge.pricing.features
+                    });
+                } else {
+                    results.relevantInfo.push({
+                        type: 'pricing',
+                        data: flybusKnowledge.pricing[enrichedContext.lastServiceType || 'standard']
+                    });
+                }
+                results.confidence = 0.8;
                 break;
         }
-        results.confidence = 0.6;
+        results.confidence = results.confidence || 0.6;
+    }
+
+    // Handle generic acknowledgments with context
+    if (enrichedContext.lastTopic && query.match(/^(yes|yeah|sure|ok|okay|perfect|great)$/i)) {
+        const lastTopic = enrichedContext.lastTopic;
+        
+        if (lastTopic === 'pricing' || lastTopic === 'group_pricing') {
+            results.relevantInfo.push({
+                type: 'booking_prompt',
+                data: {
+                    service_type: enrichedContext.lastServiceType || 'standard',
+                    message: "Would you like to proceed with booking your Flybus tickets?",
+                    booking_options: {
+                        online: "You can book online at our website",
+                        phone: "Call us at +354 599 0000",
+                        email: "Email us at info@icelandia.is"
+                    }
+                }
+            });
+            results.confidence = 0.8;
+        }
     }
 
     // Update context for next query
     if (results.relevantInfo.length > 0) {
         results.context = {
+            ...enrichedContext,
             lastTopic: results.relevantInfo[0].type,
             lastQuery: query,
             timestamp: Date.now()
@@ -1326,5 +1468,8 @@ export {
     LocationUtils,
     getRelevantKnowledge,
     generateFlightResponse,
-    detectServiceType  // Add this line
+    detectServiceType,
+    enrichContext,        // Add these
+    calculateGroupPrice,  // new exports
+    parseGroupDetails
 };

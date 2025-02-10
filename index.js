@@ -307,7 +307,11 @@ app.post('/chat', verifyApiKey, async (req, res) => {
                 context: {
                     lastTopic: 'greeting',
                     flightTime: null,
-                    flightDestination: null
+                    flightDestination: null,
+                    lastServiceType: null,
+                    isGroupBooking: false,
+                    groupDetails: null,
+                    lastQuery: userMessage
                 }
             });
         }
@@ -321,7 +325,12 @@ app.post('/chat', verifyApiKey, async (req, res) => {
             flightTime: null,
             flightDestination: null,
             timestamp: Date.now(),
-            sessionId: sessionId  // Add sessionId to context
+            sessionId: sessionId,
+            // Add new context fields
+            lastServiceType: null,
+            isGroupBooking: false,
+            groupDetails: null,
+            lastQuery: null
         };
 
         if (context) {
@@ -479,10 +488,28 @@ app.post('/chat', verifyApiKey, async (req, res) => {
 
             // Preserve important context data with logging
             const previousTopic = context.lastTopic;
-            context.lastTopic = knowledgeBaseResults.context.lastTopic || context.lastTopic;
-            context.flightTime = knowledgeBaseResults.context.flightTime || context.flightTime;
-            context.flightDestination = knowledgeBaseResults.context.flightDestination || context.flightDestination;
-            context.timestamp = Date.now();
+            context = {
+                ...context,
+                ...knowledgeBaseResults.context,
+                lastTopic: knowledgeBaseResults.context.lastTopic || context.lastTopic,
+                flightTime: knowledgeBaseResults.context.flightTime || context.flightTime,
+                flightDestination: knowledgeBaseResults.context.flightDestination || context.flightDestination,
+                lastServiceType: knowledgeBaseResults.context.lastServiceType || context.lastServiceType,
+                isGroupBooking: knowledgeBaseResults.context.isGroupBooking || context.isGroupBooking,
+                groupDetails: knowledgeBaseResults.context.groupDetails || context.groupDetails,
+                timestamp: Date.now()
+            };
+
+            // Log context changes
+            console.log('Context Update:', {
+                previousTopic,
+                newTopic: context.lastTopic,
+                flightTime: context.flightTime,
+                destination: context.flightDestination,
+                serviceType: context.lastServiceType,
+                isGroupBooking: context.isGroupBooking,
+                groupDetails: context.groupDetails
+            });
 
             // Log context changes
             console.log('Context Update:', {
@@ -517,7 +544,11 @@ app.post('/chat', verifyApiKey, async (req, res) => {
                 context: {  // Add context info to response
                     lastTopic: context.lastTopic,
                     flightTime: context.flightTime,
-                    flightDestination: context.flightDestination
+                    flightDestination: context.flightDestination,
+                    lastServiceType: context.lastServiceType || null,
+                    isGroupBooking: context.isGroupBooking || false,
+                    groupDetails: context.groupDetails || null,
+                    lastQuery: userMessage
                 }
             });
         }
@@ -545,7 +576,11 @@ app.post('/chat', verifyApiKey, async (req, res) => {
                 context: {
                     lastTopic: context?.lastTopic || 'acknowledgment',
                     flightTime: context?.flightTime || null,
-                    flightDestination: context?.flightDestination || null
+                    flightDestination: context?.flightDestination || null,
+                    lastServiceType: context?.lastServiceType || null,
+                    isGroupBooking: context?.isGroupBooking || false,
+                    groupDetails: context?.groupDetails || null,
+                    lastQuery: userMessage
                 }
             });
         }
@@ -570,7 +605,11 @@ app.post('/chat', verifyApiKey, async (req, res) => {
             context: {
                 lastTopic: context?.lastTopic || null,
                 flightTime: context?.flightTime || null,
-                flightDestination: context?.flightDestination || null
+                flightDestination: context?.flightDestination || null,
+                lastServiceType: context?.lastServiceType || null,
+                isGroupBooking: context?.isGroupBooking || false,
+                groupDetails: context?.groupDetails || null,
+                lastQuery: userMessage
             }
         });
 
@@ -584,7 +623,11 @@ app.post('/chat', verifyApiKey, async (req, res) => {
             context: {
                 lastTopic: context?.lastTopic || null,
                 flightTime: context?.flightTime || null,
-                flightDestination: context?.flightDestination || null
+                flightDestination: context?.flightDestination || null,
+                lastServiceType: context?.lastServiceType || null,
+                isGroupBooking: context?.isGroupBooking || false,
+                groupDetails: context?.groupDetails || null,
+                lastQuery: userMessage || null
             }
         });
     }
