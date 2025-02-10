@@ -232,6 +232,9 @@ app.post('/chat', verifyApiKey, async (req, res) => {
         const sessionId = req.body.sessionId || req.headers['x-session-id'] || uuidv4();
         console.log('\n=== Session Information ===');
         console.log('Session ID:', sessionId);
+        console.log('Request Body sessionId:', req.body.sessionId);
+        console.log('Headers sessionId:', req.headers['x-session-id']);
+        console.log('User Message:', userMessage);
 
         // Early language detection
         const isIcelandic = detectLanguage(userMessage);
@@ -438,7 +441,8 @@ app.post('/chat', verifyApiKey, async (req, res) => {
 
             return res.json({ 
                 message: response,
-                language: isIcelandic ? 'is' : 'en'
+                language: isIcelandic ? 'is' : 'en',
+                sessionId: sessionId  // Add to every response
             });
         }
 
@@ -457,7 +461,8 @@ app.post('/chat', verifyApiKey, async (req, res) => {
 
         return res.json({ 
             message: unknownResponse,
-            language: isIcelandic ? 'is' : 'en'
+            language: isIcelandic ? 'is' : 'en',
+            sessionId: sessionId  // Add to every response
         });
 
     } catch (error) {
