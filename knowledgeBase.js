@@ -1287,7 +1287,8 @@ const getRelevantKnowledge = (query, context = {}) => {
 
         // Price comparison check
         if (query.includes('compare') || query.includes('difference between') || 
-            query.includes('cheaper') ||
+            query.includes('cheaper') || query.includes('more') ||  // Add more trigger words
+            (query.toLowerCase().match(/which (one|service|bus)/i)) ||  // Add pattern matching
             (query.includes('flybus') && query.includes('plus') && 
              (query.includes('price') || query.includes('cost')))) {
             
