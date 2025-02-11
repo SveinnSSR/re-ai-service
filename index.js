@@ -50,7 +50,13 @@ const SYSTEM_PROMPTS = {
              Keep responses concise (2-3 sentences for simple queries, 4-5 for complex ones).
              Always use ISK as currency, never USD.
              For pricing queries, always state the total first.
-             Use "our" instead of "the" when referring to services.
+             Always use "our" for all service references:
+             - "our buses are located"
+             - "our Flybus service"
+             - "our pickup service"
+             Fixed reference points:
+             - Journey time is always "45 minutes"
+             - For Flybus+ add "approximately 30 minutes" for hotel service
              Structure complex information in clear sections:
              - Present core information first
              - Add details in logical order
@@ -84,7 +90,20 @@ const SYSTEM_PROMPTS = {
               - Reference previous context naturally
               - Focus on new information requested
               - Maintain consistent pricing information
-              - Keep service type context clear`
+              - Keep service type context clear`,
+
+    service_info: `When describing our services:
+                  - Start with core features
+                  - Include journey time (45 minutes)
+                  - Mention sustainability (carbon-neutral)
+                  - Include Wi-Fi and comfort features
+                  - End with booking information`,
+
+    acknowledgment: `For simple acknowledgments like "thanks", "great", "amazing":
+                    - Express appreciation
+                    - Maintain context from previous topic
+                    - Offer continued assistance
+                    Example: "Glad we could help! Let us know if you need anything else about [previous_topic]."`
 };
 
 // Greeting responses for Flybus (for follow up greeting only) (with Icelandic support for future use)
@@ -476,31 +495,43 @@ app.post('/chat', verifyApiKey, async (req, res) => {
                 systemPrompt = SYSTEM_PROMPTS.booking;
             } else if (knowledgeBaseResults.queryType === 'followup') {
                 systemPrompt = SYSTEM_PROMPTS.followup;
+            } else if (knowledgeBaseResults.queryType === 'service_info') {
+                systemPrompt = SYSTEM_PROMPTS.service_info;
+            } else if (knowledgeBaseResults.queryType === 'acknowledgment') {
+                systemPrompt = SYSTEM_PROMPTS.acknowledgment;
             }
-        
+
             // Check for multi-part questions
             const isMultiPart = userMessage.includes(' and ') || 
                                (userMessage.match(/\?/g) || []).length > 1;
-        
+
+            // Build base system prompt
+            const basePrompt = `${systemPrompt}
+                ${isMultiPart ? 'This is a multi-part question. Address each part separately.' : ''}
+                Respond in ${isIcelandic ? 'Icelandic' : 'English'}. 
+                Use only the information provided in the knowledge base.
+                Remember to use "our" when referring to services.`;
+
+            // Add context-specific guidance
+            const contextPrompt = context.lastTopic ? 
+                `Previous topic was about ${context.lastTopic}. Maintain relevant context.` : '';
+
             // Prepare messages for OpenAI
             const messages = [
                 {
                     role: "system",
-                    content: `${systemPrompt}
-                        ${isMultiPart ? 'This is a multi-part question. Address each part separately.' : ''}
-                        Respond in ${isIcelandic ? 'Icelandic' : 'English'}. 
-                        Use only the information provided in the knowledge base.
-                        Remember to use "our" when referring to services.`
+                    content: `${basePrompt}
+                         ${contextPrompt}`
                 },
                 {
                     role: "user",
                     content: `Knowledge Base Information: ${JSON.stringify(knowledgeBaseResults.relevantInfo)}
-                        
-                        Previous Context: ${JSON.stringify(context)}
-                        
-                        User Question: ${userMessage}
-                        
-                        Please provide a natural, conversational response using ONLY the information provided.`
+                             
+                             Previous Context: ${JSON.stringify(context)}
+                             
+                             User Question: ${userMessage}
+                             
+                             Please provide a natural, conversational response using ONLY the information provided.`
                 }
             ];
 
