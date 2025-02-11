@@ -732,6 +732,8 @@ const detectServiceType = (query) => {
 };
 
 const detectQueryType = (query) => {
+    if (!query) return 'direct';
+    query = query.toLowerCase();
     if (query.match(/^(yes|yeah|ok|sure)\s*$/i)) return 'confirmation';
     if (query.match(/^(which|what|how|is that|that)/i)) return 'reference';
     if (query.match(/^(no|nope|not)\s*$/i)) return 'negation';
@@ -767,16 +769,16 @@ const getContext = (sessionId) => {
 const enrichContext = (context, query) => {
     const serviceType = detectServiceType(query);
     const groupMatch = query.match(/(\d+)\s*(adult|child|children|youth|teenager)/gi);
-    const isGroupBooking = groupMatch !== null;
+    const isGroupBooking = groupMatch !== null || context.isGroupBooking;
     
     return {
         ...context,
         lastServiceType: serviceType,
         isGroupBooking,
-        groupDetails: isGroupBooking ? parseGroupDetails(query) : null,
-        previousQuery: context.lastQuery,  // Add this
+        groupDetails: isGroupBooking ? (parseGroupDetails(query) || context.groupDetails) : null,
+        previousQuery: context.lastQuery,
         lastQuery: query,
-        queryType,  // Add this
+        queryType: detectQueryType(query),
         timestamp: Date.now()
     };
 };

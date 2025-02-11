@@ -268,6 +268,11 @@ const broadcastConversation = async (userMessage, botResponse, language, topic =
 
 // Chat endpoint
 app.post('/chat', verifyApiKey, async (req, res) => {
+    // Add these declarations here
+    let isIcelandic = false;
+    let context;
+    let sessionId;
+
     try {
         console.log('\n=== New Chat Request ===');
         console.log('Time:', new Date().toISOString());
@@ -275,7 +280,7 @@ app.post('/chat', verifyApiKey, async (req, res) => {
         console.log('Headers:', req.headers);
 
         const userMessage = req.body.message;
-        const sessionId = req.body.sessionId || req.headers['x-session-id'] || uuidv4();
+        sessionId = req.body.sessionId || req.headers['x-session-id'] || uuidv4();  // Remove const, use the one declared above
         console.log('\n=== Session Information ===');
         console.log('Session ID:', sessionId);
         console.log('Request Body sessionId:', req.body.sessionId);
@@ -283,7 +288,7 @@ app.post('/chat', verifyApiKey, async (req, res) => {
         console.log('User Message:', userMessage);
 
         // Early language detection
-        const isIcelandic = detectLanguage(userMessage);
+        isIcelandic = detectLanguage(userMessage);
         
         // Check for greeting
         if (isGreeting(userMessage)) {
