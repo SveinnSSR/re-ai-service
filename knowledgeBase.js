@@ -736,18 +736,18 @@ const detectQueryType = (query) => {
     if (!query) return 'direct';
     query = query.toLowerCase().trim();
     
-    // Service information queries
-    if (query.match(/what('s| is) included|what do (we|you) get|what comes with/i)) {
+    // Service information queries - add more patterns
+    if (query.match(/what('s| is) included|what (do|comes|will|would)|included (in|with)|get with/i)) {
         return 'service_info';
     }
     
-    // Recommendation queries
-    if (query.match(/recommend|which( one)? (should|would)|better for|best for/i)) {
+    // Recommendation queries - enhance patterns
+    if (query.match(/recommend|which( one)? (should|would)|better for|best for|should (we|i) (take|book|use)/i)) {
         return 'recommendation';
     }
     
-    // Time-based queries
-    if (query.match(/what (bus|time)|when|arriving at|departing at/i)) {
+    // Time-based queries - improve for flight context
+    if (query.match(/what (bus|time)|when|arriving at|departing at|landing at|flight is at|need for|should.*leave/i)) {
         return 'schedule';
     }
     
