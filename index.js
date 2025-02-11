@@ -107,10 +107,11 @@ const SYSTEM_PROMPTS = {
 
     schedule: `When handling flight-related queries:
               - For departing flights:
-                * ASK if going to Europe or US/Canada if not specified
-                * Europe: recommend 2.5 hours before departure
-                * US/Canada: recommend 3 hours before departure
-                * NEVER assume destination
+                * If destination not specified, ASK: "Could you tell me if your flight is to Europe or US/Canada? This will help me recommend the correct arrival time."
+                * NEVER assume destination without asking
+                * Only after destination is confirmed:
+                  - Europe: recommend 2.5 hours before departure
+                  - US/Canada: recommend 3 hours before departure
               - For arriving flights:
                 * Always state bus departs 35-45 minutes after arrival
                 * Mention flight connection guarantee
@@ -445,8 +446,21 @@ app.post('/chat', verifyApiKey, async (req, res) => {
             
             // Enhanced destination handling
             const destinations = {
-                'europe': ['europe', 'spain', 'uk', 'france', 'germany'],
-                'us_canada': ['us', 'usa', 'united states', 'canada', 'new york', 'toronto']
+                'europe': [
+                    'europe', 'spain', 'uk', 'france', 'germany', 'london', 
+                    'amsterdam', 'paris', 'berlin', 'rome', 'dublin', 'copenhagen',
+                    'stockholm', 'oslo', 'helsinki', 'munich', 'frankfurt', 'barcelona',
+                    'madrid', 'milan', 'zurich', 'vienna', 'brussels', 'portugal',
+                    'italy', 'ireland', 'denmark', 'sweden', 'norway', 'finland',
+                    'netherlands', 'belgium', 'switzerland', 'austria'
+                ],
+                'us_canada': [
+                    'us', 'usa', 'united states', 'canada', 'new york', 'toronto',
+                    'boston', 'chicago', 'miami', 'los angeles', 'san francisco',
+                    'seattle', 'vancouver', 'montreal', 'ottawa', 'calgary',
+                    'washington', 'dallas', 'houston', 'atlanta', 'denver',
+                    'las vegas', 'orlando', 'philadelphia', 'portland'
+                ]
             };
             
             // Check for destination in current message
@@ -626,18 +640,38 @@ app.post('/chat', verifyApiKey, async (req, res) => {
                     console.log('Preserved flight time:', context.flightTime);
                 }
 
-                // Check for destination in current message
+                // Only set destination if explicitly mentioned
                 const destinations = {
-                    'europe': ['europe', 'spain', 'uk', 'france', 'germany'],
-                    'us_canada': ['us', 'usa', 'united states', 'canada', 'new york', 'toronto']
+                    'europe': [
+                        'europe', 'spain', 'uk', 'france', 'germany', 'london', 
+                        'amsterdam', 'paris', 'berlin', 'rome', 'dublin', 'copenhagen',
+                        'stockholm', 'oslo', 'helsinki', 'munich', 'frankfurt', 'barcelona',
+                        'madrid', 'milan', 'zurich', 'vienna', 'brussels', 'portugal',
+                        'italy', 'ireland', 'denmark', 'sweden', 'norway', 'finland',
+                        'netherlands', 'belgium', 'switzerland', 'austria'
+                    ],
+                    'us_canada': [
+                        'us', 'usa', 'united states', 'canada', 'new york', 'toronto',
+                        'boston', 'chicago', 'miami', 'los angeles', 'san francisco',
+                        'seattle', 'vancouver', 'montreal', 'ottawa', 'calgary',
+                        'washington', 'dallas', 'houston', 'atlanta', 'denver',
+                        'las vegas', 'orlando', 'philadelphia', 'portland'
+                    ]
                 };
 
+                let foundDestination = false;
                 for (const [key, values] of Object.entries(destinations)) {
                     if (values.some(dest => userMessage.toLowerCase().includes(dest))) {
                         context.flightDestination = key;
                         console.log('Preserved destination:', key);
+                        foundDestination = true;
                         break;
                     }
+                }
+
+                // If no destination found and time is provided, ask for destination
+                if (!foundDestination && timeMatch && !context.flightDestination) {
+                    context.needsDestination = true;
                 }
             }
 
