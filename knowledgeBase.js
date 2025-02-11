@@ -1287,12 +1287,14 @@ const getRelevantKnowledge = (query, context = {}) => {
 
         // Price comparison check
         if (query.includes('compare') || query.includes('difference between') || 
+            query.includes('cheaper') ||
             (query.includes('flybus') && query.includes('plus') && 
              (query.includes('price') || query.includes('cost')))) {
             
             results.relevantInfo.push({
                 type: 'price_comparison',
                 data: {
+                    service_difference: "The main difference is that Flybus Plus includes hotel pickup and dropoff in Reykjavík, while standard Flybus connects to BSÍ Bus Terminal only.",
                     standard: {
                         name: "Standard Flybus",
                         oneway: {
@@ -1316,13 +1318,12 @@ const getRelevantKnowledge = (query, context = {}) => {
                             currency: "ISK",
                             savings: flybusKnowledge.basic_info.service_types.plus.return_savings
                         }
-                    },
-                    main_difference: "Flybus Plus includes hotel pickup and dropoff within the Reykjavík area"
+                    }
                 }
             });
             results.confidence = 0.95;
             return results;
-        }            
+        }                      
 
         // Detect if user is asking about Flybus+ or standard Flybus
         let serviceType = detectServiceType(query);
