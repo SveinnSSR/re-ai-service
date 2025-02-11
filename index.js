@@ -483,6 +483,43 @@ app.post('/chat', verifyApiKey, async (req, res) => {
         }
         // END OF NEW CODE 👆        
 
+        // Check for acknowledgments first
+        const ackType = getAcknowledgmentType(userMessage);
+        if (ackType) {
+            const responses = isIcelandic ? 
+                ACKNOWLEDGMENT_RESPONSES.icelandic[ackType] : 
+                ACKNOWLEDGMENT_RESPONSES.english[ackType];
+            
+            // Get a response that can use context
+            const response = responses[Math.floor(Math.random() * responses.length)];
+            const contextualResponse = context.lastTopic ? 
+                response.replace(/our services|Flybus/, context.lastTopic) : 
+                response;
+
+            await broadcastConversation(
+                userMessage,
+                contextualResponse,
+                isIcelandic ? 'is' : 'en',
+                'acknowledgment',
+                'direct_response'
+            );
+
+            return res.json({ 
+                message: contextualResponse,
+                language: isIcelandic ? 'is' : 'en',
+                sessionId: sessionId,
+                context: {
+                    lastTopic: context?.lastTopic || 'acknowledgment',
+                    flightTime: context?.flightTime || null,
+                    flightDestination: context?.flightDestination || null,
+                    lastServiceType: context?.lastServiceType || null,
+                    isGroupBooking: context?.isGroupBooking || false,
+                    groupDetails: context?.groupDetails || null,
+                    lastQuery: userMessage
+                }
+            });
+        }
+
         // If we have relevant knowledge, generate response using OpenAI
         if (knowledgeBaseResults.relevantInfo.length > 0) {
             // Determine which system prompt to use
@@ -645,38 +682,6 @@ app.post('/chat', verifyApiKey, async (req, res) => {
                     lastServiceType: context.lastServiceType || null,
                     isGroupBooking: context.isGroupBooking || false,
                     groupDetails: context.groupDetails || null,
-                    lastQuery: userMessage
-                }
-            });
-        }
-
-        // Check for acknowledgments
-        const ackType = getAcknowledgmentType(userMessage);
-        if (ackType) {
-            const responses = isIcelandic ? 
-                ACKNOWLEDGMENT_RESPONSES.icelandic[ackType] : 
-                ACKNOWLEDGMENT_RESPONSES.english[ackType];
-            const response = responses[Math.floor(Math.random() * responses.length)];
-
-            await broadcastConversation(
-                userMessage,
-                response,
-                isIcelandic ? 'is' : 'en',
-                'acknowledgment',
-                'direct_response'
-            );
-
-            return res.json({ 
-                message: response,
-                language: isIcelandic ? 'is' : 'en',
-                sessionId: sessionId,
-                context: {
-                    lastTopic: context?.lastTopic || 'acknowledgment',
-                    flightTime: context?.flightTime || null,
-                    flightDestination: context?.flightDestination || null,
-                    lastServiceType: context?.lastServiceType || null,
-                    isGroupBooking: context?.isGroupBooking || false,
-                    groupDetails: context?.groupDetails || null,
                     lastQuery: userMessage
                 }
             });
