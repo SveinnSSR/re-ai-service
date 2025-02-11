@@ -60,7 +60,7 @@ const flybusKnowledge = {
                         currency: "ISK"
                     },
                     return: {
-                        price: 7299,
+                        price: 7998,  // Exactly 2x oneway
                         currency: "ISK"
                     }
                 },
@@ -102,7 +102,7 @@ const flybusKnowledge = {
                         currency: "ISK"
                     },
                     return: {
-                        price: 9399,
+                        price: 10398,  // Exactly 2x oneway
                         currency: "ISK"
                     }
                 },
