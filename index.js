@@ -125,22 +125,18 @@ const GREETING_RESPONSES = {
 const ACKNOWLEDGMENT_RESPONSES = {
     english: {
         thanks: [
-            "You're welcome! Let me know if you need anything else.",
-            "Happy to help! What else would you like to know?",
-            "Glad I could assist! Any other questions?",
-            "You're welcome! Feel free to ask if you have more questions."
+            context => `You're welcome! Let me know if you need anything else about ${context.lastTopic || 'our services'}.`,
+            context => `Happy to help! Do you have any other questions about ${context.lastTopic || 'Flybus'}?`,
+            context => `Glad I could assist! Any other questions about ${context.lastTopic || 'our services'}?`
         ],
         confirmation: [
-            "Is there anything else you'd like to know?",
-            "What else can I help you with?",
-            "Would you like any other information?",
-            "Feel free to ask any other questions about Flybus."
+            context => `Is there anything else you'd like to know about ${context.lastTopic || 'our services'}?`,
+            context => `What else can I help you with regarding ${context.lastTopic || 'Flybus'}?`
         ],
         positive: [
-            "Wonderful! What else would you like to know?",
-            "Excellent! I'm here if you have more questions.",
-            "Great! Let me know if you need anything else.",
-            "Perfect! Feel free to ask about anything else."
+            context => `Wonderful! What else would you like to know about ${context.lastTopic || 'our services'}?`,
+            context => `Excellent! Feel free to ask more about ${context.lastTopic || 'Flybus'}.`,
+            context => `Great! Let me know if you need more information about ${context.lastTopic || 'our services'}.`
         ]
     },
     icelandic: {
