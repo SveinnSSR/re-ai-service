@@ -736,7 +736,22 @@ const detectQueryType = (query) => {
     if (!query) return 'direct';
     query = query.toLowerCase().trim();
     
-    // Comparison queries (this was a key issue in test results)
+    // Service information queries
+    if (query.match(/what('s| is) included|what do (we|you) get|what comes with/i)) {
+        return 'service_info';
+    }
+    
+    // Recommendation queries
+    if (query.match(/recommend|which( one)? (should|would)|better for|best for/i)) {
+        return 'recommendation';
+    }
+    
+    // Time-based queries
+    if (query.match(/what (bus|time)|when|arriving at|departing at/i)) {
+        return 'schedule';
+    }
+    
+    // Comparison queries
     if (query.match(/^(which|what)\s+(one|type|option|service|bus)\s+(is|costs?)\s+(cheaper|more|better|faster)/i) ||
         query.match(/compare|difference between/i)) {
         return 'comparison';
