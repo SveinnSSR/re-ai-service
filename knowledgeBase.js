@@ -1145,12 +1145,41 @@ const getRelevantKnowledge = (query, context = {}) => {
     
     // Enrich context with new information
     const enrichedContext = enrichContext(context, query);
+
+    // Add the console log here
+    console.log('\n=== Query Type Detection ===');
+    console.log('Query:', query);
+    console.log('Query type:', detectQueryType(query));    
     
     const results = {
         relevantInfo: [],
         context: enrichedContext,
         confidence: 0
     };
+
+    // Add the comparison handler here, before any other checks
+    const queryType = detectQueryType(query);
+    
+    if (queryType === 'comparison') {
+        results.relevantInfo.push({
+            type: 'service_comparison',
+            data: {
+                standard: {
+                    name: "Standard Flybus",
+                    price: flybusKnowledge.basic_info.service_types.standard.oneway_price,
+                    description: "Direct service to BSÍ Bus Terminal"
+                },
+                plus: {
+                    name: "Flybus Plus",
+                    price: flybusKnowledge.basic_info.service_types.plus.oneway_price,
+                    description: "Includes hotel pickup/dropoff service"
+                }
+            }
+        });
+        results.confidence = 0.95;
+        results.context = enrichedContext;
+        return results;
+    }    
 
     // Direct inquiries about Flybus service
     if (query.includes('flybus') || query.includes('airport transfer') || 
