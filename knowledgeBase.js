@@ -8,13 +8,15 @@ const flybusKnowledge = {
                 name: ["Flybus"],
                 description: "Direct airport transfer service between Keflavík Airport and BSÍ Bus Terminal in Reykjavík",
                 oneway_price: 3999,
-                return_price: 7299
+                return_price: 7299,
+                return_savings: 699  // Add this
             },
             plus: {
                 name: ["Flybus+", "Flybus Plus", "Flybus PLUS"],
                 description: "Extended service including hotel pickup/dropoff in Reykjavík area",
                 oneway_price: 5199,
-                return_price: 9399
+                return_price: 9399,
+                return_savings: 999  // Add this
             }
         },
         service_description: "Direct airport transfer service between Keflavík Airport and Reykjavík",
@@ -60,8 +62,9 @@ const flybusKnowledge = {
                         currency: "ISK"
                     },
                     return: {
-                        price: 7998,  // Exactly 2x oneway
-                        currency: "ISK"
+                        price: 7299,  // Fix this from 7998
+                        currency: "ISK",
+                        savings: 699  // Add this
                     }
                 },
                 youth: {
@@ -102,8 +105,9 @@ const flybusKnowledge = {
                         currency: "ISK"
                     },
                     return: {
-                        price: 10398,  // Exactly 2x oneway
-                        currency: "ISK"
+                        price: 9399,  // Fix this from 10398
+                        currency: "ISK",
+                        savings: 999  // Add this
                     }
                 },
                 youth: {
