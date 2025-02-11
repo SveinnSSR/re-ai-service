@@ -731,6 +731,13 @@ const detectServiceType = (query) => {
     return plusVariations.some(v => query.includes(v)) ? 'plus' : 'standard';
 };
 
+const detectQueryType = (query) => {
+    if (query.match(/^(yes|yeah|ok|sure)\s*$/i)) return 'confirmation';
+    if (query.match(/^(which|what|how|is that|that)/i)) return 'reference';
+    if (query.match(/^(no|nope|not)\s*$/i)) return 'negation';
+    return 'direct';
+};
+
 // Context awareness for multi-turn conversations
 const conversationContext = new Map();
 
@@ -767,7 +774,9 @@ const enrichContext = (context, query) => {
         lastServiceType: serviceType,
         isGroupBooking,
         groupDetails: isGroupBooking ? parseGroupDetails(query) : null,
+        previousQuery: context.lastQuery,  // Add this
         lastQuery: query,
+        queryType,  // Add this
         timestamp: Date.now()
     };
 };
@@ -1589,5 +1598,6 @@ export {
     detectServiceType,
     enrichContext,        // Add these
     calculateGroupPrice,  // new exports
-    parseGroupDetails
+    parseGroupDetails,
+    detectQueryType    // Add this
 };
