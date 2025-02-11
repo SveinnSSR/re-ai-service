@@ -1184,15 +1184,18 @@ const getRelevantKnowledge = (query, context = {}) => {
     // Add new followup handler here
     if (queryType === 'followup' && query.toLowerCase().includes('return')) {
         // Check if we have group booking context
-        if (enrichedContext.groupDetails && enrichedContext.groupDetails.adults) {
+        if (enrichedContext.groupDetails && enrichedContext.groupDetails.adults > 0) {
             const adults = enrichedContext.groupDetails.adults;
+            const serviceType = enrichedContext.lastServiceType || 'standard';
+            const baseReturnPrice = flybusKnowledge.pricing[serviceType].rates.adult.return.price;
+            
             results.relevantInfo.push({
                 type: 'pricing',
                 data: {
                     ticket_type: 'return',
                     group_size: adults,
-                    price: adults * flybusKnowledge.pricing[enrichedContext.lastServiceType || 'standard'].rates.adult.return.price,
-                    service_type: enrichedContext.lastServiceType || 'standard'
+                    total_price: adults * baseReturnPrice,
+                    service_type: serviceType
                 }
             });
             results.confidence = 0.95;
