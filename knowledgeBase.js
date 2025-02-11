@@ -700,7 +700,7 @@ const flybusKnowledge = {
     }
 };
 
-// Fuzzy matching utilities
+// Fuzzy matching utilities.
 const fuzzyMatch = (text, pattern) => {
     text = text.toLowerCase();
     pattern = pattern.toLowerCase();
