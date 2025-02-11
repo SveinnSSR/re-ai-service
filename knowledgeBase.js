@@ -1181,6 +1181,26 @@ const getRelevantKnowledge = (query, context = {}) => {
         return results;
     }    
 
+    // Add new followup handler here
+    if (queryType === 'followup' && query.toLowerCase().includes('return')) {
+        // Check if we have group booking context
+        if (enrichedContext.groupDetails && enrichedContext.groupDetails.adults) {
+            const adults = enrichedContext.groupDetails.adults;
+            results.relevantInfo.push({
+                type: 'pricing',
+                data: {
+                    ticket_type: 'return',
+                    group_size: adults,
+                    price: adults * flybusKnowledge.pricing[enrichedContext.lastServiceType || 'standard'].rates.adult.return.price,
+                    service_type: enrichedContext.lastServiceType || 'standard'
+                }
+            });
+            results.confidence = 0.95;
+            results.context = enrichedContext;
+            return results;
+        }
+    }
+
     // Direct inquiries about Flybus service
     if (query.includes('flybus') || query.includes('airport transfer') || 
         query.includes('airport bus') || query.includes('kef')) {
