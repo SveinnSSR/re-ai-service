@@ -163,7 +163,7 @@ const isGreeting = (message) => {
 const getAcknowledgmentType = (message) => {
     const msg = message.toLowerCase().trim();
     
-    if (/^(thanks|thank you|thx|ty|thank)/i.test(msg)) {
+    if (/^(thanks|thank you|thx|ty|thank)\b/i.test(msg)) {
         return 'thanks';
     }
     
@@ -171,7 +171,7 @@ const getAcknowledgmentType = (message) => {
         return 'confirmation';
     }
     
-    if (/^(great|perfect|good|excellent|wonderful|awesome|nice|brilliant)\b/i.test(msg)) {
+    if (/^(great|perfect|good|excellent|wonderful|awesome|nice|brilliant|amazing)\b/i.test(msg)) {
         return 'positive';
     }
     
