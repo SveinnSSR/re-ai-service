@@ -125,18 +125,22 @@ const GREETING_RESPONSES = {
 const ACKNOWLEDGMENT_RESPONSES = {
     english: {
         thanks: [
-            context => `You're welcome! Let me know if you need anything else about ${context.lastTopic || 'our services'}.`,
-            context => `Happy to help! Do you have any other questions about ${context.lastTopic || 'Flybus'}?`,
-            context => `Glad I could assist! Any other questions about ${context.lastTopic || 'our services'}?`
+            "You're welcome! Let me know if you need anything else.",
+            "Happy to help! What else would you like to know?",
+            "Glad I could assist! Any other questions?",
+            "You're welcome! Feel free to ask if you have more questions."
         ],
         confirmation: [
-            context => `Is there anything else you'd like to know about ${context.lastTopic || 'our services'}?`,
-            context => `What else can I help you with regarding ${context.lastTopic || 'Flybus'}?`
+            "Is there anything else you'd like to know?",
+            "What else can I help you with?",
+            "Would you like any other information?",
+            "Feel free to ask any other questions about Flybus."
         ],
         positive: [
-            context => `Wonderful! What else would you like to know about ${context.lastTopic || 'our services'}?`,
-            context => `Excellent! Feel free to ask more about ${context.lastTopic || 'Flybus'}.`,
-            context => `Great! Let me know if you need more information about ${context.lastTopic || 'our services'}.`
+            "Wonderful! What else would you like to know?",
+            "Excellent! I'm here if you have more questions.",
+            "Great! Let me know if you need anything else.",
+            "Perfect! Feel free to ask about anything else."
         ]
     },
     icelandic: {
@@ -486,22 +490,19 @@ app.post('/chat', verifyApiKey, async (req, res) => {
                 ACKNOWLEDGMENT_RESPONSES.icelandic[ackType] : 
                 ACKNOWLEDGMENT_RESPONSES.english[ackType];
             
-            // Get a response that can use context
+            // Select a random response - these are already contextual so no need for additional context
             const response = responses[Math.floor(Math.random() * responses.length)];
-            const contextualResponse = context.lastTopic ? 
-                response.replace(/our services|Flybus/, context.lastTopic) : 
-                response;
 
             await broadcastConversation(
                 userMessage,
-                contextualResponse,
+                response,
                 isIcelandic ? 'is' : 'en',
                 'acknowledgment',
                 'direct_response'
             );
 
             return res.json({ 
-                message: contextualResponse,
+                message: response,
                 language: isIcelandic ? 'is' : 'en',
                 sessionId: sessionId,
                 context: {
