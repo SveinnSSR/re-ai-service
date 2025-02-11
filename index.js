@@ -49,16 +49,42 @@ const SYSTEM_PROMPTS = {
     default: `You are a helpful assistant for Reykjavík Excursions Flybus service.
              Keep responses concise (2-3 sentences for simple queries, 4-5 for complex ones).
              Always use ISK as currency, never USD.
-             For pricing queries, always state the total first.`,
+             For pricing queries, always state the total first.
+             Use "our" instead of "the" when referring to services.
+             Structure complex information in clear sections:
+             - Present core information first
+             - Add details in logical order
+             - End with practical details
+             For multi-part questions:
+             - Address each part separately
+             - Use clear transitions
+             - Keep focus on one topic at a time`,
     
     booking: `When handling booking inquiries:
-             - Inform that bookings can be made at re.is
-             - Provide contact details: +354 599 0000 or info@icelandia.is`,
+             - Inform that bookings can be made at our website re.is
+             - Provide our contact details: +354 599 0000 or info@icelandia.is
+             - Keep focus on one action step at a time
+             - Use "our" when referring to services
+             - For schedule questions:
+               * State departure times clearly
+               * List return times separately
+               * Include booking deadlines if applicable`,
               
-    comparison: `When comparing Flybus services:
+    comparison: `When comparing our Flybus services:
                 - Clearly state which service is cheaper
-                - Explain the main difference is hotel pickup
-                - Include prices in ISK for both services`
+                - Present price difference first
+                - Explain hotel pickup benefit
+                - Include prices in ISK for both services
+                - Structure comparison points clearly:
+                  * Price difference
+                  * Service differences
+                  * Pickup/dropoff options`,
+                  
+    followup: `For follow-up questions:
+              - Reference previous context naturally
+              - Focus on new information requested
+              - Maintain consistent pricing information
+              - Keep service type context clear`
 };
 
 // Greeting responses for Flybus (for follow up greeting only) (with Icelandic support for future use)
@@ -442,23 +468,35 @@ app.post('/chat', verifyApiKey, async (req, res) => {
         if (knowledgeBaseResults.relevantInfo.length > 0) {
             // Determine which system prompt to use
             let systemPrompt = SYSTEM_PROMPTS.default;
+            
+            // Enhanced prompt selection based on query type
             if (knowledgeBaseResults.queryType === 'comparison') {
                 systemPrompt = SYSTEM_PROMPTS.comparison;
             } else if (knowledgeBaseResults.queryType === 'booking') {
                 systemPrompt = SYSTEM_PROMPTS.booking;
+            } else if (knowledgeBaseResults.queryType === 'followup') {
+                systemPrompt = SYSTEM_PROMPTS.followup;
             }
-
+        
+            // Check for multi-part questions
+            const isMultiPart = userMessage.includes(' and ') || 
+                               (userMessage.match(/\?/g) || []).length > 1;
+        
             // Prepare messages for OpenAI
             const messages = [
                 {
                     role: "system",
                     content: `${systemPrompt}
+                        ${isMultiPart ? 'This is a multi-part question. Address each part separately.' : ''}
                         Respond in ${isIcelandic ? 'Icelandic' : 'English'}. 
-                        Use only the information provided in the knowledge base.`
+                        Use only the information provided in the knowledge base.
+                        Remember to use "our" when referring to services.`
                 },
                 {
                     role: "user",
                     content: `Knowledge Base Information: ${JSON.stringify(knowledgeBaseResults.relevantInfo)}
+                        
+                        Previous Context: ${JSON.stringify(context)}
                         
                         User Question: ${userMessage}
                         
