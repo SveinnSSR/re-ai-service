@@ -736,17 +736,27 @@ const detectQueryType = (query) => {
     if (!query) return 'direct';
     query = query.toLowerCase().trim();
     
-    // Service information queries - add more patterns
-    if (query.match(/what('s| is) included|what (do|comes|will|would)|included (in|with)|get with/i)) {
+    // Flight schedule queries
+    if (query.match(/\b(arriving|landing|flight|departure|departing)\s+(at|is|time|coming)\b/i) ||
+        query.match(/take.+?(flight|airport|arriving|landing)/i) ||
+        query.match(/\b\d{1,2}(?::\d{2})?\s*(?:am|pm)?\s*flight\b/i)) {
+        return 'flight_schedule';
+    }
+    
+    // Service information queries
+    if (query.match(/\b(what|which).+?(include|come|get|offer)\b/i) ||
+        query.match(/included?\s+(in|with)/i) ||
+        query.match(/what.+?(comes|get|offer)/i)) {
         return 'service_info';
     }
     
-    // Recommendation queries - enhance patterns
-    if (query.match(/recommend|which( one)? (should|would)|better for|best for|should (we|i) (take|book|use)/i)) {
+    // Recommendation queries
+    if (query.match(/\b(recommend|better|best|which|better)\b.*?\b(service|bus|pickup|hotel|families?)\b/i) ||
+        query.match(/\bwhich\s+(\w+\s+)?(bus|service)\b/i)) {
         return 'recommendation';
     }
     
-    // Time-based queries - improve for flight context
+    // Time-based queries
     if (query.match(/what (bus|time)|when|arriving at|departing at|landing at|flight is at|need for|should.*leave/i)) {
         return 'schedule';
     }
@@ -1326,7 +1336,8 @@ const getRelevantKnowledge = (query, context = {}) => {
     const isFlightRelated = query.includes('flight') || 
                            query.includes('departure') || 
                            query.includes('when') || 
-                           query.includes('what time');
+                           query.includes('what time') ||
+                           query.match(/\b(arriving|landing|at|coming)\b/i); // Add arrival patterns
     
     // Check if this is a follow-up time response to a flight question
     const isFollowUpTime = context?.lastTopic === 'flight_timing' && 
@@ -1348,6 +1359,12 @@ const getRelevantKnowledge = (query, context = {}) => {
                 enhancedQuery = `my flight is ${query.replace(/^(it'?s|its|it is|at)\s+/i, '')}`;
             } else if (query.match(/^to\s+\w+/i)) {
                 enhancedQuery = `my flight ${query}`;
+            } else if (query.match(/\b(arriving|landing|coming)\b/i)) {
+                // Add handling for arrival queries
+                const timeMatch = query.match(/\b(\d{1,2}(?::(?:\d{2}))?\s*(?:am|pm)?)\b/i);
+                if (timeMatch) {
+                    enhancedQuery = `arriving at ${timeMatch[0]}`;
+                }
             }
             console.log('Enhanced flight query:', enhancedQuery);
         }
@@ -1360,9 +1377,10 @@ const getRelevantKnowledge = (query, context = {}) => {
             ...results.context,
             lastTopic: 'flight_timing',
             flightTime: flightResponse.data.flightTime || context?.flightTime,
-            flightDestination: flightResponse.data.flightDestination || context?.flightDestination
+            flightDestination: flightResponse.data.flightDestination || context?.flightDestination,
+            isArrival: query.match(/\b(arriving|landing|coming)\b/i) || false
         };
-        results.confidence = 0.9;
+        results.confidence = 0.95;
     }
     
     // Handle yes/no responses with context

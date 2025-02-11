@@ -103,7 +103,27 @@ const SYSTEM_PROMPTS = {
                     - Express appreciation
                     - Maintain context from previous topic
                     - Offer continued assistance
-                    Example: "Glad we could help! Let us know if you need anything else about [previous_topic]."`
+                    Example: "Glad we could help! Let us know if you need anything else about [previous_topic]."`,
+
+    schedule: `When handling flight-related queries:
+              - For departing flights:
+                * ASK if going to Europe or US/Canada if not specified
+                * Europe: recommend 2.5 hours before departure
+                * US/Canada: recommend 3 hours before departure
+                * NEVER assume destination
+              - For arriving flights:
+                * Always state bus departs 35-45 minutes after arrival
+                * Mention flight connection guarantee
+                * State bus location (right outside terminal)
+              - Always specify exact times in format: XX:XX`,
+
+    recommendation: `When making service recommendations:
+                    - Ask clarifying questions if needed
+                    - Compare relevant features
+                    - Make clear recommendation based on needs
+                    - For hotel service questions, specifically mention Flybus+
+                    - For family queries, mention child/youth pricing
+                    - End with practical next steps`
 };
 
 // Greeting responses for Flybus (for follow up greeting only) (with Icelandic support for future use)
@@ -533,6 +553,10 @@ app.post('/chat', verifyApiKey, async (req, res) => {
                 systemPrompt = SYSTEM_PROMPTS.service_info;
             } else if (knowledgeBaseResults.queryType === 'acknowledgment') {
                 systemPrompt = SYSTEM_PROMPTS.acknowledgment;
+            } else if (knowledgeBaseResults.queryType === 'flight_schedule') {
+                systemPrompt = SYSTEM_PROMPTS.schedule;
+            } else if (knowledgeBaseResults.queryType === 'recommendation') {
+                systemPrompt = SYSTEM_PROMPTS.recommendation;
             }
 
             // Check for multi-part questions
