@@ -48,18 +48,17 @@ const RE_GUIDELINES = {
 const SYSTEM_PROMPTS = {
     default: `You are a helpful assistant for Reykjavík Excursions Flybus service.
              Keep responses concise (2-3 sentences for simple queries, 4-5 for complex ones).
-             Focus on actionable information.
-             For pricing queries, always clearly state the total first.`,
+             Always use ISK as currency, never USD.
+             For pricing queries, always state the total first.`,
     
-    booking: `When handling bookings:
-             - Immediately ask for missing information (flight details, hotel name)
-             - Confirm details before proceeding
-             - Keep the flow moving forward`,
+    booking: `When handling booking inquiries:
+             - Inform that bookings can be made at re.is
+             - Provide contact details: +354 599 0000 or info@icelandia.is`,
               
-    contextual: `For follow-up questions:
-                - If comparing options (which, what, better), always provide a direct comparison
-                - For yes/no responses, carry forward the previous context
-                - When unclear, ask for clarification rather than saying "I'm not sure"`
+    comparison: `When comparing Flybus services:
+                - Clearly state which service is cheaper
+                - Explain the main difference is hotel pickup
+                - Include prices in ISK for both services`
 };
 
 // Greeting responses for Flybus (for follow up greeting only) (with Icelandic support for future use)
@@ -443,10 +442,10 @@ app.post('/chat', verifyApiKey, async (req, res) => {
         if (knowledgeBaseResults.relevantInfo.length > 0) {
             // Determine which system prompt to use
             let systemPrompt = SYSTEM_PROMPTS.default;
-            if (userMessage.toLowerCase().includes('book') || context?.lastTopic === 'booking') {
+            if (knowledgeBaseResults.queryType === 'comparison') {
+                systemPrompt = SYSTEM_PROMPTS.comparison;
+            } else if (knowledgeBaseResults.queryType === 'booking') {
                 systemPrompt = SYSTEM_PROMPTS.booking;
-            } else if (context?.lastTopic || userMessage.match(/^(which|what|how|is that|that)/i)) {
-                systemPrompt = SYSTEM_PROMPTS.contextual;
             }
 
             // Prepare messages for OpenAI
@@ -454,16 +453,16 @@ app.post('/chat', verifyApiKey, async (req, res) => {
                 {
                     role: "system",
                     content: `${systemPrompt}
-                             Respond in ${isIcelandic ? 'Icelandic' : 'English'}. 
-                             Use only the information provided in the knowledge base.`
+                        Respond in ${isIcelandic ? 'Icelandic' : 'English'}. 
+                        Use only the information provided in the knowledge base.`
                 },
                 {
                     role: "user",
                     content: `Knowledge Base Information: ${JSON.stringify(knowledgeBaseResults.relevantInfo)}
-                             
-                             User Question: ${userMessage}
-                             
-                             Please provide a natural, conversational response using ONLY the information provided.`
+                        
+                        User Question: ${userMessage}
+                        
+                        Please provide a natural, conversational response using ONLY the information provided.`
                 }
             ];
 
