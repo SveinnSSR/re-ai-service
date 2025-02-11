@@ -1284,7 +1284,46 @@ const getRelevantKnowledge = (query, context = {}) => {
     if (query.includes('price') || query.includes('cost') || query.includes('fee') || 
         query.includes('ticket') || query.includes('how much') || query.includes('book') ||
         query.includes('cancel') || query.includes('refund') || query.includes('return')) {
-        
+
+        // Price comparison check
+        if (query.includes('compare') || query.includes('difference between') || 
+            (query.includes('flybus') && query.includes('plus') && 
+             (query.includes('price') || query.includes('cost')))) {
+            
+            results.relevantInfo.push({
+                type: 'price_comparison',
+                data: {
+                    standard: {
+                        name: "Standard Flybus",
+                        oneway: {
+                            price: flybusKnowledge.pricing.standard.rates.adult.oneway.price,
+                            currency: "ISK"
+                        },
+                        return: {
+                            price: flybusKnowledge.pricing.standard.rates.adult.return.price,
+                            currency: "ISK",
+                            savings: flybusKnowledge.basic_info.service_types.standard.return_savings
+                        }
+                    },
+                    plus: {
+                        name: "Flybus Plus",
+                        oneway: {
+                            price: flybusKnowledge.pricing.plus.rates.adult.oneway.price,
+                            currency: "ISK"
+                        },
+                        return: {
+                            price: flybusKnowledge.pricing.plus.rates.adult.return.price,
+                            currency: "ISK",
+                            savings: flybusKnowledge.basic_info.service_types.plus.return_savings
+                        }
+                    },
+                    main_difference: "Flybus Plus includes hotel pickup and dropoff within the Reykjavík area"
+                }
+            });
+            results.confidence = 0.95;
+            return results;
+        }            
+
         // Detect if user is asking about Flybus+ or standard Flybus
         let serviceType = detectServiceType(query);
         
