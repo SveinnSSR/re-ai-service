@@ -731,12 +731,33 @@ const detectServiceType = (query) => {
     return plusVariations.some(v => query.includes(v)) ? 'plus' : 'standard';
 };
 
+// Query type detection
 const detectQueryType = (query) => {
     if (!query) return 'direct';
-    query = query.toLowerCase();
+    query = query.toLowerCase().trim();
+    
+    // Comparison queries (this was a key issue in test results)
+    if (query.match(/^(which|what)\s+(one|type|option|service|bus)\s+(is|costs?)\s+(cheaper|more|better|faster)/i) ||
+        query.match(/compare|difference between/i)) {
+        return 'comparison';
+    }
+    
+    // Simple confirmations and negations
     if (query.match(/^(yes|yeah|ok|sure)\s*$/i)) return 'confirmation';
-    if (query.match(/^(which|what|how|is that|that)/i)) return 'reference';
     if (query.match(/^(no|nope|not)\s*$/i)) return 'negation';
+    
+    // Booking intent
+    if (query.match(/\b(book|reserve|purchase|buy)\b/i)) return 'booking';
+    
+    // Follow-up questions
+    if (query.match(/^(what about|how about|and|but)\s/i) ||
+        query.match(/^(is|does|do)\s+that/i)) {
+        return 'followup';
+    }
+
+    // Price queries
+    if (query.match(/\b(price|cost|fee|how much)\b/i)) return 'pricing';
+
     return 'direct';
 };
 

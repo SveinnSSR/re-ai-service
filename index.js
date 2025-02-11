@@ -44,6 +44,23 @@ const RE_GUIDELINES = {
     }
 };
 
+// System Prompts for Response Control
+const SYSTEM_PROMPTS = {
+    default: `You are a helpful assistant for Reykjavík Excursions Flybus service.
+             Keep responses concise (2-3 sentences for simple queries, 4-5 for complex ones).
+             Focus on actionable information.
+             For pricing queries, always clearly state the total first.`,
+    
+    booking: `When handling bookings:
+             - Immediately ask for missing information (flight details, hotel name)
+             - Confirm details before proceeding
+             - Keep the flow moving forward`,
+              
+    contextual: `For follow-up questions:
+                - If comparing options (which, what, better), always provide a direct comparison
+                - For yes/no responses, carry forward the previous context
+                - When unclear, ask for clarification rather than saying "I'm not sure"`
+};
 
 // Greeting responses for Flybus (for follow up greeting only) (with Icelandic support for future use)
 const GREETING_RESPONSES = {
@@ -424,14 +441,21 @@ app.post('/chat', verifyApiKey, async (req, res) => {
 
         // If we have relevant knowledge, generate response using OpenAI
         if (knowledgeBaseResults.relevantInfo.length > 0) {
+            // Determine which system prompt to use
+            let systemPrompt = SYSTEM_PROMPTS.default;
+            if (userMessage.toLowerCase().includes('book') || context?.lastTopic === 'booking') {
+                systemPrompt = SYSTEM_PROMPTS.booking;
+            } else if (context?.lastTopic || userMessage.match(/^(which|what|how|is that|that)/i)) {
+                systemPrompt = SYSTEM_PROMPTS.contextual;
+            }
+
             // Prepare messages for OpenAI
             const messages = [
                 {
                     role: "system",
-                    content: `You are a helpful assistant for Reykjavík Excursions Flybus service. 
+                    content: `${systemPrompt}
                              Respond in ${isIcelandic ? 'Icelandic' : 'English'}. 
-                             Use only the information provided in the knowledge base.
-                             Be friendly but professional, and stay focused on Flybus-related information.`
+                             Use only the information provided in the knowledge base.`
                 },
                 {
                     role: "user",
