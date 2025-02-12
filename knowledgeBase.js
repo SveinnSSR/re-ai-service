@@ -50,6 +50,82 @@ const flybusKnowledge = {
         keywords: ["flybus", "airport transfer", "keflavik", "reykjavik", "bsi", "shuttle", "flybus+", "flybus plus", "plus"],
         context_triggers: ["airport", "transfer", "transport", "bus", "kef", "shuttle", "plus"]
     },
+    service_details: {
+        fleet: {
+            description: "One of the best bus fleets in Iceland",
+            vehicles: {
+                count: 80,
+                types: [
+                    {
+                        type: "Standard coaches",
+                        capacity: "6 to 70 seats"
+                    },
+                    {
+                        type: "4x4 coaches",
+                        features: ["Highland-capable", "Un-bridged glacier river crossing"]
+                    }
+                ],
+                maintenance: "Constant supervision and maintenance",
+                drivers: "Professional drivers ensuring passenger safety"
+            }
+        },
+        policies: {
+            smoking: {
+                allowed: false,
+                policy: "Smoking is prohibited on board all coaches"
+            },
+            safety: {
+                measures: [
+                    "Regular vehicle maintenance",
+                    "Professional drivers",
+                    "Enhanced passenger safety protocols"
+                ]
+            }
+        },
+        route_details: {
+            distance: {
+                kilometers: 50,
+                miles: 31
+            },
+            duration: {
+                standard: "45 minutes",
+                conditions: "Subject to road conditions",
+                hotel_service: "Additional 30 minutes for Flybus+"
+            },
+            city_restrictions: {
+                downtown: "Large buses not allowed in downtown Reykjavík",
+                solution: "Minibus transfer for hotel service",
+                walking_distance: "1-5 minutes from designated bus stops to hotels"
+            }
+        },
+        purchase_options: {
+            recommended: {
+                method: "Online booking",
+                benefits: [
+                    "Book in advance",
+                    "Travel cashfree",
+                    "Flexible tickets",
+                    "Skip the lines"
+                ]
+            },
+            airport: {
+                method: "Ticket machines",
+                location: "Keflavík airport",
+                availability: "24/7"
+            }
+        },
+        service_guarantees: {
+            seats: "Always available for airport passengers",
+            delays: "Bus waits for delayed flights",
+            frequency: "Service for every arriving and departing flight",
+            flexibility: "Tickets valid for any departure"
+        },
+        keywords: [
+            "coach", "bus", "vehicle", "fleet", "smoking", 
+            "route", "distance", "tickets", "booking", "purchase",
+            "safety", "guarantee", "vehicle", "transport"
+        ]
+    },
     // Add pickup_timing section here, right after basic_info
     pickup_timing: {
         general_rules: {
@@ -1312,6 +1388,52 @@ const getRelevantKnowledge = (query, context = {}) => {
         });
         results.confidence = 0.9;
     }
+
+    // Fleet and vehicle queries
+    if (query.includes('coach') || query.includes('bus') || query.includes('vehicle') || 
+        query.includes('fleet') || query.includes('transport') || query.includes('driver')) {
+        results.relevantInfo.push({
+            type: 'fleet_info',
+            data: flybusKnowledge.service_details.fleet
+        });
+        results.confidence = 0.9;
+    }
+
+    // Smoking and policy queries
+    if (query.includes('smoking') || query.includes('smoke') || 
+        query.includes('cigarette') || query.includes('policy')) {
+        results.relevantInfo.push({
+            type: 'policy',
+            data: flybusKnowledge.service_details.policies
+        });
+        results.confidence = 0.95;
+    }
+
+    // Safety queries
+    if (query.includes('safe') || query.includes('security') || 
+        query.includes('driver') || query.includes('maintenance')) {
+        results.relevantInfo.push({
+            type: 'safety',
+            data: {
+                fleet: flybusKnowledge.service_details.fleet.maintenance,
+                safety: flybusKnowledge.service_details.policies.safety
+            }
+        });
+        results.confidence = 0.9;
+    }
+
+    // Purchase and booking queries - enhance existing section
+    if (query.includes('book') || query.includes('buy') || 
+        query.includes('purchase') || query.includes('ticket')) {
+        results.relevantInfo.push({
+            type: 'purchase_options',
+            data: {
+                options: flybusKnowledge.service_details.purchase_options,
+                guarantees: flybusKnowledge.service_details.service_guarantees
+            }
+        });
+        results.confidence = 0.9;
+    }    
 
     // Location and hotel related queries
     if (query.includes('hotel') || query.includes('stay') || query.includes('location') || 

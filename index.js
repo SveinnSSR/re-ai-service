@@ -152,6 +152,38 @@ const SYSTEM_PROMPTS = {
                      * Include in first response, don't wait for follow-up questions
                      * Always format as "bus stop X (Street Name)"
                      * Specify if it's direct doorstep pickup immediately`,
+                      
+    fleet_info: `When describing our fleet:
+            - Start with the total number of vehicles (80)
+            - Emphasize modern and comfortable coaches
+            - Mention carbon-neutral status
+            - Highlight professional drivers and safety
+            - Include vehicle types and capacities
+            - Structure information clearly:
+              * Fleet size and types first
+              * Maintenance and safety second
+              * Special capabilities last`,
+
+    safety: `When addressing safety queries:
+            - Lead with our commitment to safety
+            - Highlight professional drivers
+            - Mention regular maintenance
+            - Emphasize supervision practices
+            - Structure response:
+              * Core safety measures first
+              * Maintenance practices
+              * Driver qualifications
+            - Always maintain reassuring tone`,
+
+    policy: `When explaining policies:
+            - State policy clearly and directly upfront
+            - Explain rationale behind policy
+            - Include any exceptions if applicable
+            - Format response:
+              * Clear policy statement first
+              * Supporting details second
+              * Contact information if needed
+            - Keep tone professional but friendly`,              
 };
 
 // Greeting responses for Flybus (for follow up greeting only) (with Icelandic support for future use)
@@ -605,7 +637,13 @@ app.post('/chat', verifyApiKey, async (req, res) => {
                 info.type === 'bus_stop' ||
                 info.type === 'location_restrictions')) {
                 systemPrompt = SYSTEM_PROMPTS.pickup_timing;
-            }
+            } else if (knowledgeBaseResults.relevantInfo.some(info => info.type === 'fleet_info')) {
+                systemPrompt = SYSTEM_PROMPTS.fleet_info;
+            } else if (knowledgeBaseResults.relevantInfo.some(info => info.type === 'safety')) {
+                systemPrompt = SYSTEM_PROMPTS.safety;
+            } else if (knowledgeBaseResults.relevantInfo.some(info => info.type === 'policy')) {
+                systemPrompt = SYSTEM_PROMPTS.policy;
+            }    
 
             // Check for multi-part questions
             const isMultiPart = userMessage.includes(' and ') || 
