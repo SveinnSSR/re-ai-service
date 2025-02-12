@@ -154,36 +154,40 @@ const SYSTEM_PROMPTS = {
                      * Specify if it's direct doorstep pickup immediately`,
                       
     fleet_info: `When describing our fleet:
-            - Start with the total number of vehicles (80)
-            - Emphasize modern and comfortable coaches
-            - Mention carbon-neutral status
-            - Highlight professional drivers and safety
-            - Include vehicle types and capacities
-            - Structure information clearly:
-              * Fleet size and types first
-              * Maintenance and safety second
-              * Special capabilities last`,
+                - Keep responses to 2-3 sentences for basic queries, 4-5 for complex ones
+                - Start with the total number of vehicles (80)
+                - Structure information clearly:
+                  * First sentence: Fleet size and types (modern, comfortable coaches)
+                  * Second sentence: Key features (carbon-neutral status)
+                  * If needed: Maintenance and safety in one sentence
+                  * If needed: Special capabilities (4x4, highland access) in one sentence
+                - Include vehicle types and capacities
+                - Highlight professional drivers and safety
+                - Never exceed 5 sentences total`,
 
     safety: `When addressing safety queries:
+            - Keep responses to 3-4 sentences maximum
             - Lead with our commitment to safety
+            - Structure response concisely:
+              * First sentence: Core safety commitment
+              * Second sentence: Maintenance practices
+              * Third sentence: Professional drivers and qualifications
+              * Optional fourth: Special safety features
             - Highlight professional drivers
             - Mention regular maintenance
             - Emphasize supervision practices
-            - Structure response:
-              * Core safety measures first
-              * Maintenance practices
-              * Driver qualifications
-            - Always maintain reassuring tone`,
+            - Always maintain reassuring but concise tone`,
 
     policy: `When explaining policies:
+            - Keep responses to 2-3 sentences maximum
             - State policy clearly and directly upfront
-            - Explain rationale behind policy
+            - Structure response:
+              * First sentence: Clear policy statement
+              * Second sentence: Brief rationale if needed
+              * Optional third: Exceptions or contact information
             - Include any exceptions if applicable
-            - Format response:
-              * Clear policy statement first
-              * Supporting details second
-              * Contact information if needed
-            - Keep tone professional but friendly`,              
+            - Keep tone professional but friendly
+            - Avoid unnecessary elaboration`,            
 };
 
 // Greeting responses for Flybus (for follow up greeting only) (with Icelandic support for future use)
