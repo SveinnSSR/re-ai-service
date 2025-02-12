@@ -296,11 +296,13 @@ const flybusKnowledge = {
                 arrival_instructions: "Be ready and visible outside at pickup location",
                 waiting_time: "Bus could arrive anytime within the 30-minute window",
                 late_pickup: {
-                    threshold: "20-25 minutes",
-                    action: "Contact +354 599 0000"
+                    threshold: "20-25 minutes into pickup window",
+                    action: "Contact +354 599 0000 for immediate assistance",
+                    note: "Keep waiting at pickup location until contacted"
                 },
                 missed_pickup: {
-                    instruction: "Must arrive at BSÍ Bus Terminal at own cost",
+                    instruction: "Must reach BSÍ Bus Terminal at own cost",
+                    departure_note: "Flybus departs from BSÍ at scheduled time regardless of pickup status",
                     note: "Passengers responsible for being ready and visible"
                 }
             }
@@ -1364,14 +1366,33 @@ const getRelevantKnowledge = (query, context = {}) => {
                             bus_stop: {
                                 number: stop.number,
                                 name: stop.name,
-                                area: stop.location_info.area
+                                area: stop.location_info.area,
+                                street: stop.location_info.street || stop.name
                             },
-                            pickup_instructions: "Please be ready outside the hotel 30 minutes before your scheduled departure time."
+                            pickup_instructions: `Please be ready at bus stop ${stop.number} (${stop.name}) 30 minutes before your scheduled departure time.`,
+                            city_center_note: stop.location_info.area === 'downtown' ? 
+                                "Due to city center traffic regulations, we use designated bus stops to ensure timely service." : null
                         }
                     });
                     results.confidence = 0.95;
                 }
             });
+        });
+
+        // For direct pickup hotels
+        Object.values(flybusKnowledge.locations.direct_pickup.hotels).forEach(hotel => {
+            if (query.toLowerCase().includes(hotel.name.toLowerCase())) {
+                results.relevantInfo.push({
+                    type: 'hotel_location',
+                    data: {
+                        hotel: hotel.name,
+                        pickup_type: 'direct_doorstep',
+                        area: hotel.area,
+                        pickup_instructions: "Please be ready outside the hotel entrance 30 minutes before your scheduled departure time."
+                    }
+                });
+                results.confidence = 0.95;
+            }
         });
 
         // If no specific matches, return general location search

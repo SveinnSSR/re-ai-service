@@ -133,14 +133,19 @@ const SYSTEM_PROMPTS = {
                    - Key points to cover:
                      * Be ready and visible outside at pickup location
                      * Bus arrives within 30-minute window
-                     * Contact +354 599 0000 if pickup is 20+ minutes late
+                     * If bus hasn't arrived after 20-25 minutes, contact +354 599 0000
                    - For city center locations:
-                     * Mention possible restricted areas
+                     * Due to city traffic regulations, some areas are restricted
+                     * Mention BOTH bus stop number AND street name
                      * Note same location for pickup and drop-off
                    - Include passenger responsibilities:
                      * Must be ready outside
                      * Must be visible to driver
-                     * Own transport to BSÍ if pickup is missed`
+                     * For missed pickups: Must reach BSÍ at own cost for scheduled departure
+                   - When providing hotel pickup locations:
+                     * Always include bus stop number if applicable
+                     * Include street name/location
+                     * For direct pickup hotels, specify "direct doorstep pickup"`,
 };
 
 // Greeting responses for Flybus (for follow up greeting only) (with Icelandic support for future use)
