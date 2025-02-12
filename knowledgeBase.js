@@ -1372,7 +1372,7 @@ const getRelevantKnowledge = (query, context = {}) => {
                         },
                         serviced_hotels: stopInfo.serviced_hotels,
                         area: stopInfo.location_info.area,
-                        pickup_instructions: `Please wait at bus stop ${stopNumber} (${stopInfo.name}) 30 minutes before your scheduled departure time. You can find the location here: ${mapsUrl}`,
+                        pickup_instructions: `Please wait at bus stop ${stopNumber} (${stopInfo.name}) 30 minutes before your scheduled departure time.`, // Remove URL from here
                         timing_rules: flybusKnowledge.locations.general_info.timing_rules
                     }
                 });
@@ -1402,7 +1402,7 @@ const getRelevantKnowledge = (query, context = {}) => {
                             street: stop.location_info.street || stop.name,
                             maps_url: mapsUrl
                         },
-                        pickup_instructions: `Please wait at bus stop ${stopNum} (${stop.name}) 30 minutes before your scheduled departure time. You can find the location here: ${mapsUrl}`,
+                        pickup_instructions: `Please wait at bus stop ${stopNum} (${stop.name}) 30 minutes before your scheduled departure time.`, // Remove URL from here
                         city_center_note: stop.location_info.area === 'downtown' ? 
                             "Due to city center traffic regulations, we use designated bus stops to ensure timely service." : null,
                         timing_rules: flybusKnowledge.locations.general_info.timing_rules,
