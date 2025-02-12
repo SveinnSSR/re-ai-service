@@ -1358,15 +1358,21 @@ const getRelevantKnowledge = (query, context = {}) => {
             const stopNumber = busStopMatch[1];
             const stopInfo = flybusKnowledge.locations.bus_stops[stopNumber];
             if (stopInfo) {
+                const coords = stopInfo.location_info.coordinates;
+                const mapsUrl = `https://www.google.com/maps/dir/${coords.lat},${coords.lng}`;
+                
                 results.relevantInfo.push({
                     type: 'bus_stop',
                     data: {
                         number: stopNumber,
                         name: stopInfo.name,
-                        location: stopInfo.location_info,
+                        location: {
+                            ...stopInfo.location_info,
+                            maps_url: mapsUrl
+                        },
                         serviced_hotels: stopInfo.serviced_hotels,
                         area: stopInfo.location_info.area,
-                        pickup_instructions: `Please wait at bus stop ${stopNumber} (${stopInfo.name}) 30 minutes before your scheduled departure time.`,
+                        pickup_instructions: `Please wait at bus stop ${stopNumber} (${stopInfo.name}) 30 minutes before your scheduled departure time. You can find the location here: ${mapsUrl}`,
                         timing_rules: flybusKnowledge.locations.general_info.timing_rules
                     }
                 });
@@ -1382,6 +1388,9 @@ const getRelevantKnowledge = (query, context = {}) => {
             );
             
             if (foundHotel) {
+                const coords = stop.location_info.coordinates;
+                const mapsUrl = `https://www.google.com/maps/dir/${coords.lat},${coords.lng}`;
+                
                 results.relevantInfo.push({
                     type: 'hotel_location',
                     data: {
@@ -1390,9 +1399,10 @@ const getRelevantKnowledge = (query, context = {}) => {
                             number: stopNum,
                             name: stop.name,
                             area: stop.location_info.area,
-                            street: stop.location_info.street || stop.name
+                            street: stop.location_info.street || stop.name,
+                            maps_url: mapsUrl
                         },
-                        pickup_instructions: `Please wait at bus stop ${stopNum} (${stop.name}) 30 minutes before your scheduled departure time.`,
+                        pickup_instructions: `Please wait at bus stop ${stopNum} (${stop.name}) 30 minutes before your scheduled departure time. You can find the location here: ${mapsUrl}`,
                         city_center_note: stop.location_info.area === 'downtown' ? 
                             "Due to city center traffic regulations, we use designated bus stops to ensure timely service." : null,
                         timing_rules: flybusKnowledge.locations.general_info.timing_rules,
