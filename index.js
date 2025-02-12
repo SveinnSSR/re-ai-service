@@ -136,16 +136,22 @@ const SYSTEM_PROMPTS = {
                      * If bus hasn't arrived after 20-25 minutes, contact +354 599 0000
                    - For city center locations:
                      * Due to city traffic regulations, some areas are restricted
-                     * Mention BOTH bus stop number AND street name
+                     * ALWAYS mention BOTH bus stop number AND street name in first response
+                     * Format as "bus stop X (Street Name)"
                      * Note same location for pickup and drop-off
                    - Include passenger responsibilities:
                      * Must be ready outside
                      * Must be visible to driver
                      * For missed pickups: Must reach BSÍ at own cost for scheduled departure
                    - When providing hotel pickup locations:
-                     * Always include bus stop number if applicable
-                     * Include street name/location
-                     * For direct pickup hotels, specify "direct doorstep pickup"`,
+                     * Always include bus stop number if applicable in first response
+                     * Include complete location: "bus stop X (Street Name)"
+                     * For direct pickup hotels, explicitly state "direct doorstep pickup service"
+                     * For restricted area hotels, explain bus stop requirement
+                   - Never omit bus stop numbers and names:
+                     * Include in first response, don't wait for follow-up questions
+                     * Always format as "bus stop X (Street Name)"
+                     * Specify if it's direct doorstep pickup immediately`,
 };
 
 // Greeting responses for Flybus (for follow up greeting only) (with Icelandic support for future use)
@@ -594,6 +600,11 @@ app.post('/chat', verifyApiKey, async (req, res) => {
                 systemPrompt = SYSTEM_PROMPTS.recommendation;
             } else if (knowledgeBaseResults.queryType === 'pickup_timing') {
                 systemPrompt = SYSTEM_PROMPTS.pickup_timing;
+            } else if (knowledgeBaseResults.relevantInfo.some(info => 
+                info.type === 'hotel_location' || 
+                info.type === 'bus_stop' ||
+                info.type === 'location_restrictions')) {
+                systemPrompt = SYSTEM_PROMPTS.pickup_timing;
             }
 
             // Check for multi-part questions
@@ -605,11 +616,14 @@ app.post('/chat', verifyApiKey, async (req, res) => {
                 ${isMultiPart ? 'This is a multi-part question. Address each part separately.' : ''}
                 Respond in ${isIcelandic ? 'Icelandic' : 'English'}. 
                 Use only the information provided in the knowledge base.
-                Remember to use "our" when referring to services.`;
+                Remember to use "our" when referring to services.
+                Include specific location information immediately when available.
+                Always mention bus stop numbers and names in first response.`;
 
             // Add context-specific guidance
             const contextPrompt = context.lastTopic ? 
-                `Previous topic was about ${context.lastTopic}. Maintain relevant context.` : '';
+                `Previous topic was about ${context.lastTopic}. Maintain relevant context.
+                 If location information was previously provided, include it again.` : '';
 
             // Prepare messages for OpenAI
             const messages = [
@@ -626,7 +640,8 @@ app.post('/chat', verifyApiKey, async (req, res) => {
                              
                              User Question: ${userMessage}
                              
-                             Please provide a natural, conversational response using ONLY the information provided.`
+                             Please provide a natural, conversational response using ONLY the information provided.
+                             When mentioning locations, always include bus stop numbers and names immediately.`
                 }
             ];
 

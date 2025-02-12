@@ -1317,6 +1317,26 @@ const getRelevantKnowledge = (query, context = {}) => {
     if (query.includes('hotel') || query.includes('stay') || query.includes('location') || 
         query.includes('pickup') || query.includes('where') || query.includes('bus stop') ||
         query.includes('drop') || query.includes('downtown') || query.includes('terminal')) {
+        
+        // First check direct pickup hotels
+        const directPickupHotel = flybusKnowledge.locations.direct_pickup.hotels.find(hotel => 
+            query.toLowerCase().includes(hotel.name.toLowerCase())
+        );
+
+        if (directPickupHotel) {
+            results.relevantInfo.push({
+                type: 'hotel_location',
+                data: {
+                    hotel: directPickupHotel.name,
+                    pickup_type: 'direct_doorstep',
+                    area: directPickupHotel.area,
+                    pickup_instructions: "Direct doorstep pickup service available - please be ready outside the hotel entrance 30 minutes before your scheduled departure time.",
+                    timing_rules: flybusKnowledge.locations.general_info.timing_rules
+                }
+            });
+            results.confidence = 0.95;
+            return results;
+        }
 
         // Add location restrictions check
         const isRestrictionQuery = query.match(/\b(restriction|limited|cannot|area|access)\b/i);
@@ -1330,7 +1350,7 @@ const getRelevantKnowledge = (query, context = {}) => {
             });
             results.confidence = 0.95;
             return results;
-        }            
+        }
 
         // Check for specific bus stop number queries
         const busStopMatch = query.match(/bus stop (\d+)/i) || query.match(/stop (\d+)/i);
@@ -1345,7 +1365,9 @@ const getRelevantKnowledge = (query, context = {}) => {
                         name: stopInfo.name,
                         location: stopInfo.location_info,
                         serviced_hotels: stopInfo.serviced_hotels,
-                        area: stopInfo.location_info.area
+                        area: stopInfo.location_info.area,
+                        pickup_instructions: `Please wait at bus stop ${stopNumber} (${stopInfo.name}) 30 minutes before your scheduled departure time.`,
+                        timing_rules: flybusKnowledge.locations.general_info.timing_rules
                     }
                 });
                 results.confidence = 0.95;
@@ -1353,56 +1375,47 @@ const getRelevantKnowledge = (query, context = {}) => {
             }
         }
 
-        // Check for hotel queries
-        let hotelName = '';
-        Object.values(flybusKnowledge.locations.bus_stops).forEach(stop => {
-            stop.serviced_hotels.forEach(hotel => {
-                if (query.toLowerCase().includes(hotel.toLowerCase())) {
-                    hotelName = hotel;
-                    results.relevantInfo.push({
-                        type: 'hotel_location',
-                        data: {
-                            hotel: hotel,
-                            bus_stop: {
-                                number: stop.number,
-                                name: stop.name,
-                                area: stop.location_info.area,
-                                street: stop.location_info.street || stop.name
-                            },
-                            pickup_instructions: `Please be ready at bus stop ${stop.number} (${stop.name}) 30 minutes before your scheduled departure time.`,
-                            city_center_note: stop.location_info.area === 'downtown' ? 
-                                "Due to city center traffic regulations, we use designated bus stops to ensure timely service." : null
-                        }
-                    });
-                    results.confidence = 0.95;
-                }
-            });
-        });
-
-        // For direct pickup hotels
-        Object.values(flybusKnowledge.locations.direct_pickup.hotels).forEach(hotel => {
-            if (query.toLowerCase().includes(hotel.name.toLowerCase())) {
+        // Check for hotel queries in bus stops
+        for (const [stopNum, stop] of Object.entries(flybusKnowledge.locations.bus_stops)) {
+            const foundHotel = stop.serviced_hotels.find(hotel => 
+                query.toLowerCase().includes(hotel.toLowerCase())
+            );
+            
+            if (foundHotel) {
                 results.relevantInfo.push({
                     type: 'hotel_location',
                     data: {
-                        hotel: hotel.name,
-                        pickup_type: 'direct_doorstep',
-                        area: hotel.area,
-                        pickup_instructions: "Please be ready outside the hotel entrance 30 minutes before your scheduled departure time."
+                        hotel: foundHotel,
+                        bus_stop: {
+                            number: stopNum,
+                            name: stop.name,
+                            area: stop.location_info.area,
+                            street: stop.location_info.street || stop.name
+                        },
+                        pickup_instructions: `Please wait at bus stop ${stopNum} (${stop.name}) 30 minutes before your scheduled departure time.`,
+                        city_center_note: stop.location_info.area === 'downtown' ? 
+                            "Due to city center traffic regulations, we use designated bus stops to ensure timely service." : null,
+                        timing_rules: flybusKnowledge.locations.general_info.timing_rules,
+                        restrictions: flybusKnowledge.locations.general_info.restrictions
                     }
                 });
                 results.confidence = 0.95;
+                return results;
             }
-        });
+        }
 
-        // If no specific matches, return general location search
+        // If no specific matches, return general location search with enhanced info
         if (results.relevantInfo.length === 0) {
             const locationResults = LocationUtils.searchLocation(query);
             if (locationResults.exactMatches.length > 0 || locationResults.areaMatches.length > 0) {
                 results.relevantInfo.push({
                     type: 'location',
-                    data: locationResults,
-                    general_info: flybusKnowledge.locations.general_info
+                    data: {
+                        ...locationResults,
+                        general_info: flybusKnowledge.locations.general_info,
+                        timing_rules: flybusKnowledge.locations.general_info.timing_rules,
+                        restrictions: flybusKnowledge.locations.general_info.restrictions
+                    }
                 });
                 results.confidence = 0.9;
             }
