@@ -50,7 +50,30 @@ const flybusKnowledge = {
         keywords: ["flybus", "airport transfer", "keflavik", "reykjavik", "bsi", "shuttle", "flybus+", "flybus plus", "plus"],
         context_triggers: ["airport", "transfer", "transport", "bus", "kef", "shuttle", "plus"]
     },
-
+    // Add pickup_timing section here, right after basic_info
+    pickup_timing: {
+        general_rules: {
+            window: "30 minutes before departure",
+            arrival_window: "Bus could arrive anytime within the 30-minute window",
+            visibility: "Be ready and visible outside at pickup location",
+            late_pickup: {
+                threshold: "20-25 minutes",
+                action: "Call +354 599 0000"
+            }
+        },
+        important_notes: [
+            "Pickup time and departure time are different",
+            "Pickup starts 30 minutes before scheduled departure",
+            "Must be ready and visible at pickup location",
+            "Missing pickup requires own transport to BSÍ"
+        ],
+        city_center: {
+            restrictions: "Some city center locations require using nearest bus stop",
+            dropoff: "Drop-off at same location as pickup in restricted areas"
+        },
+        responsibility: "Passengers are responsible for being ready and visible for pickup",
+        contact: "+354 599 0000"
+    },
     pricing: {
         standard: {
             name: "Flybus",
@@ -151,7 +174,6 @@ const flybusKnowledge = {
         ],
         keywords: ["price", "cost", "fee", "rates", "ticket", "booking", "return", "plus", "one way", "oneway", "youth", "child", "children"]
     },
-
     schedules: {
         airport_to_city: {
             description: "Flybus operates in connection with all arriving flights at Keflavik Airport",
@@ -187,7 +209,6 @@ const flybusKnowledge = {
         },
         keywords: ["schedule", "timetable", "departure", "arrival", "time", "when"]
     },
-
     luggage: {
         standard_allowance: {
             main_luggage: {
@@ -222,7 +243,6 @@ const flybusKnowledge = {
         ],
         keywords: ["luggage", "bag", "suitcase", "bicycle", "bike", "weight", "extra"]
     },
-
     special_services: {
         child_seats: {
             availability: "Available upon request",
@@ -248,7 +268,6 @@ const flybusKnowledge = {
             keywords: ["wheelchair", "accessible", "disability", "mobility"]
         }
     },
-
     locations: {
         general_info: {
             description: "Comprehensive pickup and dropoff service in Reykjavík area",
@@ -257,10 +276,33 @@ const flybusKnowledge = {
             maps: {
                 all_stops: "https://www.google.com/maps/d/u/0/embed?mid=16_CecpP8J8JNlIFoP6tdwKhPVPiUUG4"
             },
+            restrictions: {
+                city_center: {
+                    description: "Some areas have restricted bus access",
+                    solution: "Use nearest designated bus stop",
+                    note: "Same location for pickup and drop-off"
+                },
+                dropoff_limitations: {
+                    factors: [
+                        "Narrow streets",
+                        "Coach size",
+                        "Roadworks"
+                    ],
+                    note: "Drop-off may not be directly in front of accommodation"
+                }
+            },
             timing_rules: {
                 pickup_window: "30 minutes before scheduled departure",
                 arrival_instructions: "Be ready and visible outside at pickup location",
-                waiting_time: "Bus could arrive anytime within the 30-minute window"
+                waiting_time: "Bus could arrive anytime within the 30-minute window",
+                late_pickup: {
+                    threshold: "20-25 minutes",
+                    action: "Contact +354 599 0000"
+                },
+                missed_pickup: {
+                    instruction: "Must arrive at BSÍ Bus Terminal at own cost",
+                    note: "Passengers responsible for being ready and visible"
+                }
             }
         },
         bus_stops: {
@@ -742,6 +784,13 @@ const detectQueryType = (query) => {
         query.match(/\b\d{1,2}(?::\d{2})?\s*(?:am|pm)?\s*flight\b/i)) {
         return 'flight_schedule';
     }
+
+    // Add pickup timing queries here
+    if (query.match(/\b(pick.?up|when.*ready|waiting.*time|pickup.*time)\b/i) ||
+        query.match(/\b(when|what time).*bus.*arrive\b/i) ||
+        query.match(/\b(how long.*wait|waiting period)\b/i)) {
+        return 'pickup_timing';
+    }    
     
     // Service information queries
     if (query.match(/\b(what|which).+?(include|come|get|offer)\b/i) ||
@@ -1206,6 +1255,21 @@ const getRelevantKnowledge = (query, context = {}) => {
         return results;
     }    
 
+    // Add pickup timing handler here, right after comparison handler
+    if (queryType === 'pickup_timing') {
+        results.relevantInfo.push({
+            type: 'pickup_timing',
+            data: {
+                general_rules: flybusKnowledge.pickup_timing.general_rules,
+                important_notes: flybusKnowledge.pickup_timing.important_notes,
+                restrictions: flybusKnowledge.locations.general_info.restrictions,
+                timing_rules: flybusKnowledge.locations.general_info.timing_rules
+            }
+        });
+        results.confidence = 0.95;
+        return results;
+    }
+
     // Add new followup handler here
     if (queryType === 'followup' && query.toLowerCase().includes('return')) {
         // Get correct group details from context
@@ -1251,7 +1315,21 @@ const getRelevantKnowledge = (query, context = {}) => {
     if (query.includes('hotel') || query.includes('stay') || query.includes('location') || 
         query.includes('pickup') || query.includes('where') || query.includes('bus stop') ||
         query.includes('drop') || query.includes('downtown') || query.includes('terminal')) {
-        
+
+        // Add location restrictions check
+        const isRestrictionQuery = query.match(/\b(restriction|limited|cannot|area|access)\b/i);
+        if (isRestrictionQuery) {
+            results.relevantInfo.push({
+                type: 'location_restrictions',
+                data: {
+                    restrictions: flybusKnowledge.locations.general_info.restrictions,
+                    timing_rules: flybusKnowledge.locations.general_info.timing_rules
+                }
+            });
+            results.confidence = 0.95;
+            return results;
+        }            
+
         // Check for specific bus stop number queries
         const busStopMatch = query.match(/bus stop (\d+)/i) || query.match(/stop (\d+)/i);
         if (busStopMatch) {
@@ -1314,6 +1392,20 @@ const getRelevantKnowledge = (query, context = {}) => {
     if (query.includes('schedule') || query.includes('time') || query.includes('when') || 
         query.includes('depart') || query.includes('arrival') || query.includes('late') ||
         query.includes('miss') || query.includes('flight')) {
+
+        // Check if this is a pickup timing question
+        if (query.match(/\b(pick.?up|when.*ready|waiting.*time)\b/i)) {
+            results.relevantInfo.push({
+                type: 'pickup_timing',
+                data: {
+                    general_rules: flybusKnowledge.pickup_timing.general_rules,
+                    timing_rules: flybusKnowledge.locations.general_info.timing_rules
+                }
+            });
+            results.confidence = 0.95;
+            return results;
+        }
+
         if (query.includes('airport') || query.includes('kef') || query.includes('arriving')) {
             results.relevantInfo.push({
                 type: 'schedule',
