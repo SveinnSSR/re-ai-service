@@ -107,8 +107,9 @@ const SYSTEM_PROMPTS = {
 
     schedule: `When handling flight-related queries:
               - For departing flights:
-                * If destination not specified, ASK: "Could you tell me if your flight is to Europe or US/Canada? This will help me recommend the correct arrival time."
-                * NEVER assume destination without asking
+                * ALWAYS ask for destination if not explicitly mentioned
+                * Even if previous context suggests Europe/US, still ask for confirmation
+                * Exact prompt to use: "Could you let me know if your flight is to Europe or to the US/Canada? This will help me determine the correct arrival time."
                 * Only after destination is confirmed:
                   - Europe: recommend 2.5 hours before departure
                   - US/Canada: recommend 3 hours before departure
