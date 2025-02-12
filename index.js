@@ -125,7 +125,22 @@ const SYSTEM_PROMPTS = {
                     - Make clear recommendation based on needs
                     - For hotel service questions, specifically mention Flybus+
                     - For family queries, mention child/youth pricing
-                    - End with practical next steps`
+                    - End with practical next steps`,
+
+    pickup_timing: `When handling pickup timing queries:
+                   - Always emphasize pickup starts 30 minutes before departure
+                   - State clearly that pickup and departure times are different
+                   - Key points to cover:
+                     * Be ready and visible outside at pickup location
+                     * Bus arrives within 30-minute window
+                     * Contact +354 599 0000 if pickup is 20+ minutes late
+                   - For city center locations:
+                     * Mention possible restricted areas
+                     * Note same location for pickup and drop-off
+                   - Include passenger responsibilities:
+                     * Must be ready outside
+                     * Must be visible to driver
+                     * Own transport to BSÍ if pickup is missed`
 };
 
 // Greeting responses for Flybus (for follow up greeting only) (with Icelandic support for future use)
@@ -572,6 +587,8 @@ app.post('/chat', verifyApiKey, async (req, res) => {
                 systemPrompt = SYSTEM_PROMPTS.schedule;
             } else if (knowledgeBaseResults.queryType === 'recommendation') {
                 systemPrompt = SYSTEM_PROMPTS.recommendation;
+            } else if (knowledgeBaseResults.queryType === 'pickup_timing') {
+                systemPrompt = SYSTEM_PROMPTS.pickup_timing;
             }
 
             // Check for multi-part questions
