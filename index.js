@@ -11,7 +11,8 @@ import {
     getRelevantKnowledge, 
     LocationUtils,
     updateContext,
-    getContext 
+    getContext,
+    createContextFields  // Add this 
 } from './knowledgeBase.js';
 
 
@@ -46,6 +47,18 @@ const RE_GUIDELINES = {
 
 // System Prompts for Response Control
 const SYSTEM_PROMPTS = {
+    casual_chat: `When handling casual conversation and introductions:
+                 - Maintain a warm, professional tone
+                 - Acknowledge personal introductions
+                 - Gently guide conversation back to Flybus services
+                 - For greetings: Respond naturally but segue to Flybus
+                 - For personal questions: Acknowledge politely and redirect
+                 - Always end with subtle prompt about services
+                 Examples:
+                 - Name introductions: "Nice to meet you [name]! I'd be happy to help you plan your Flybus journey."
+                 - How are you: "I'm doing well, thank you! I'm here to help with your airport transfer needs."
+                 - General chat: "Thanks for asking! I'm here to assist with your Flybus transportation needs."`,
+
     default: `You are a helpful assistant for Reykjavík Excursions Flybus service.
              Keep responses concise (2-3 sentences for simple queries, 4-5 for complex ones).
              Always use ISK as currency, never USD.
@@ -278,6 +291,42 @@ const tourRelatedTerms = {
     ]
 };
 
+const casualChatPatterns = {
+    greetings: {
+        patterns: /^(hi|hey|hello|good\s*(morning|afternoon|evening)|hej|hæ)$/i,
+        responses: [
+            "Hello! I'd be happy to help you plan your Flybus journey today.",
+            "Hi there! How can I assist you with your airport transfer?",
+            "Welcome! I'm here to help with your Flybus transportation needs.",
+            "Hello! How can I help you with your travel plans today?"
+        ]
+    },
+    introductions: {
+        patterns: /^((i'?m|my name is|this is)\s+([a-z]+)|([a-z]+)\s+here)$/i,
+        responses: [
+            "Nice to meet you {name}! I'd be happy to help you plan your Flybus journey.",
+            "Hello {name}! How can I assist you with your airport transfer today?",
+            "Welcome {name}! I'm here to help with your Flybus travel needs."
+        ]
+    },
+    wellbeing: {
+        patterns: /^(how are (you|u)|how'?s it going|what'?s up|how are things|how('?s| is) your day)$/i,
+        responses: [
+            "I'm doing well, thank you! I'm here to help you plan your journey. How can I assist with your airport transfer?",
+            "Thanks for asking! I'm ready to help with your transportation needs. What would you like to know about our Flybus service?",
+            "Great, thank you! I'm here to help make your airport transfer smooth and easy. What can I help you with?"
+        ]
+    },
+    generic_chat: {
+        patterns: /^(nice to (meet|see) (you|u)|good to (meet|see) (you|u)|pleasure to meet you)$/i,
+        responses: [
+            "Likewise! I'm here to help make your journey smooth. What would you like to know about our Flybus service?",
+            "Thank you! I'm looking forward to helping you with your airport transfer needs. How can I assist?",
+            "The pleasure is mine! How can I help you with your Flybus journey today?"
+        ]
+    }
+};
+
 // Simple language detection - always returns English for demo
 const detectLanguage = (message) => {
     return false;  // Always return false to indicate English
@@ -454,34 +503,21 @@ app.post('/chat', verifyApiKey, async (req, res) => {
                 message: response,
                 language: isIcelandic ? 'is' : 'en',
                 sessionId: sessionId,
-                context: {
+                context: createContextFields({}, {
                     lastTopic: 'greeting',
-                    flightTime: null,
-                    flightDestination: null,
-                    lastServiceType: null,
-                    isGroupBooking: false,
-                    groupDetails: null,
-                    lastQuery: userMessage
-                }
+                    lastQuery: userMessage,
+                    language: isIcelandic ? 'is' : 'en',
+                    sessionId: sessionId
+                })
             });
         }
 
         // Initialize or get context with enhanced flight tracking
         let context = getContext(sessionId);
-        const newContext = {
-            messages: [],
-            lastTopic: null,
+        const newContext = createContextFields({}, {
             language: isIcelandic ? 'is' : 'en',
-            flightTime: null,
-            flightDestination: null,
-            timestamp: Date.now(),
-            sessionId: sessionId,
-            // Add new context fields
-            lastServiceType: null,
-            isGroupBooking: false,
-            groupDetails: null,
-            lastQuery: null
-        };
+            sessionId: sessionId
+        });
 
         if (context) {
             // Merge existing context with new data
@@ -602,25 +638,49 @@ app.post('/chat', verifyApiKey, async (req, res) => {
                 message: response,
                 language: isIcelandic ? 'is' : 'en',
                 sessionId: sessionId,
-                context: {
+                context: createContextFields(context, {
                     lastTopic: context?.lastTopic || 'acknowledgment',
-                    flightTime: context?.flightTime || null,
-                    flightDestination: context?.flightDestination || null,
-                    lastServiceType: context?.lastServiceType || null,
-                    isGroupBooking: context?.isGroupBooking || false,
-                    groupDetails: context?.groupDetails || null,
                     lastQuery: userMessage
-                }
+                })
             });
         }
 
         // If we have relevant knowledge, generate response using OpenAI
         if (knowledgeBaseResults.relevantInfo.length > 0) {
+
+            // Add this section for casual chat handling
+            if (knowledgeBaseResults.relevantInfo[0].type === 'casual_chat') {
+                const chatResponse = knowledgeBaseResults.relevantInfo[0];
+                
+                await broadcastConversation(
+                    userMessage,
+                    chatResponse.data.response,
+                    isIcelandic ? 'is' : 'en',
+                    'casual_chat',
+                    'direct_response'
+                );
+
+                return res.json({
+                    message: chatResponse.data.response,
+                    language: isIcelandic ? 'is' : 'en',
+                    sessionId: sessionId,
+                    context: createContextFields(context, {
+                        lastTopic: chatResponse.context?.previousTopic || 'casual_chat',
+                        chatType: chatResponse.chatType,
+                        lastQuery: userMessage
+                    })
+                });
+            }            
+
             // Determine which system prompt to use
             let systemPrompt = SYSTEM_PROMPTS.default;
             
+            // Check for casual chat first
+            if (knowledgeBaseResults.relevantInfo[0].type === 'casual_chat') {
+                systemPrompt = SYSTEM_PROMPTS.casual_chat;
+            }
             // Enhanced prompt selection based on query type
-            if (knowledgeBaseResults.queryType === 'comparison') {
+            else if (knowledgeBaseResults.queryType === 'comparison') {
                 systemPrompt = SYSTEM_PROMPTS.comparison;
             } else if (knowledgeBaseResults.queryType === 'booking') {
                 systemPrompt = SYSTEM_PROMPTS.booking;
@@ -658,14 +718,18 @@ app.post('/chat', verifyApiKey, async (req, res) => {
                 ${isMultiPart ? 'This is a multi-part question. Address each part separately.' : ''}
                 Respond in ${isIcelandic ? 'Icelandic' : 'English'}. 
                 Use only the information provided in the knowledge base.
-                Remember to use "our" when referring to services.
-                Include specific location information immediately when available.
-                Always mention bus stop numbers and names in first response.`;
+                ${knowledgeBaseResults.relevantInfo[0].type === 'casual_chat' ? 
+                    'Remember to keep responses warm but professional and guide back to Flybus services.' : 
+                    'Remember to use "our" when referring to services.'}
+                ${knowledgeBaseResults.relevantInfo[0].type !== 'casual_chat' ? 
+                    'Include specific location information immediately when available.\n                Always mention bus stop numbers and names in first response.' : 
+                    ''}`;
 
             // Add context-specific guidance
             const contextPrompt = context.lastTopic ? 
                 `Previous topic was about ${context.lastTopic}. Maintain relevant context.
-                 If location information was previously provided, include it again.` : '';
+                 ${knowledgeBaseResults.relevantInfo[0].type !== 'casual_chat' && 
+                   'If location information was previously provided, include it again.'}` : '';
 
             // Prepare messages for OpenAI
             const messages = [
@@ -676,14 +740,19 @@ app.post('/chat', verifyApiKey, async (req, res) => {
                 },
                 {
                     role: "user",
-                    content: `Knowledge Base Information: ${JSON.stringify(knowledgeBaseResults.relevantInfo)}
+                    content: `${knowledgeBaseResults.relevantInfo[0].type === 'casual_chat' ? 
+                             'Casual Chat Context: ' + JSON.stringify(knowledgeBaseResults.relevantInfo[0].data) :
+                             'Knowledge Base Information: ' + JSON.stringify(knowledgeBaseResults.relevantInfo)}
                              
                              Previous Context: ${JSON.stringify(context)}
                              
-                             User Question: ${userMessage}
+                             ${knowledgeBaseResults.relevantInfo[0].type === 'casual_chat' ? 
+                               'User Message' : 'User Question'}: ${userMessage}
                              
                              Please provide a natural, conversational response using ONLY the information provided.
-                             When mentioning locations, always include bus stop numbers and names immediately.`
+                             ${knowledgeBaseResults.relevantInfo[0].type !== 'casual_chat' ? 
+                             'When mentioning locations, always include bus stop numbers and names immediately.' : 
+                             'Keep the response friendly but professional, and guide the conversation towards Flybus services.'}`
                 }
             ];
 
@@ -751,41 +820,44 @@ app.post('/chat', verifyApiKey, async (req, res) => {
 
                 // If no destination found and time is provided, ask for destination
                 if (!foundDestination && timeMatch && !context.flightDestination) {
-                    context.needsDestination = true;
+                    context = createContextFields(context, {
+                        needsDestination: true,
+                        flightTime: timeMatch[0],
+                        lastTopic: 'flight_timing'
+                    });
                 }
             }
 
             // Preserve important context data with logging
             const previousTopic = context.lastTopic;
-            context = {
-                ...context,
-                ...knowledgeBaseResults.context,
-                lastTopic: knowledgeBaseResults.context.lastTopic || context.lastTopic,
-                flightTime: knowledgeBaseResults.context.flightTime || context.flightTime,
-                flightDestination: knowledgeBaseResults.context.flightDestination || context.flightDestination,
-                lastServiceType: knowledgeBaseResults.context.lastServiceType || context.lastServiceType,
-                isGroupBooking: knowledgeBaseResults.context.isGroupBooking || context.isGroupBooking,
-                groupDetails: knowledgeBaseResults.context.groupDetails || context.groupDetails,
-                timestamp: Date.now()
-            };
+            try {
+                context = createContextFields(context, {
+                    ...knowledgeBaseResults.context,
+                    lastTopic: knowledgeBaseResults.context.lastTopic || context.lastTopic,
+                    lastQuery: userMessage,
+                    timestamp: Date.now()
+                });
+            } catch (error) {
+                console.error('Error updating context:', error);
+                // Fallback to basic context if creation fails
+                context = createContextFields({}, {
+                    lastTopic: 'error',
+                    lastQuery: userMessage,
+                    timestamp: Date.now()
+                });
+            }
 
             // Log context changes
             console.log('Context Update:', {
                 previousTopic,
                 newTopic: context.lastTopic,
                 flightTime: context.flightTime,
-                destination: context.flightDestination,
-                serviceType: context.lastServiceType,
+                flightDestination: context.flightDestination,
+                lastServiceType: context.lastServiceType,
                 isGroupBooking: context.isGroupBooking,
-                groupDetails: context.groupDetails
-            });
-
-            // Log context changes
-            console.log('Context Update:', {
-                previousTopic,
-                newTopic: context.lastTopic,
-                flightTime: context.flightTime,
-                destination: context.flightDestination
+                groupDetails: context.groupDetails,
+                lastQuery: userMessage,
+                timestamp: Date.now()
             });
             
             // Always preserve context type if responding to a flight query
@@ -806,19 +878,24 @@ app.post('/chat', verifyApiKey, async (req, res) => {
                 'gpt_response'
             );
 
+            let updatedContext;
+            try {
+                updatedContext = createContextFields(context, {
+                    lastQuery: userMessage
+                });
+            } catch (error) {
+                console.error('Error creating context fields:', error);
+                updatedContext = createContextFields({}, {
+                    lastQuery: userMessage,
+                    timestamp: Date.now()
+                });
+            }
+
             return res.json({
                 message: response,
                 language: isIcelandic ? 'is' : 'en',
                 sessionId: sessionId,
-                context: {  // Add context info to response
-                    lastTopic: context.lastTopic,
-                    flightTime: context.flightTime,
-                    flightDestination: context.flightDestination,
-                    lastServiceType: context.lastServiceType || null,
-                    isGroupBooking: context.isGroupBooking || false,
-                    groupDetails: context.groupDetails || null,
-                    lastQuery: userMessage
-                }
+                context: updatedContext
             });
         }
 
@@ -838,16 +915,11 @@ app.post('/chat', verifyApiKey, async (req, res) => {
         return res.json({ 
             message: unknownResponse,
             language: isIcelandic ? 'is' : 'en',
-            sessionId: sessionId,  // Add to every response
-            context: {
-                lastTopic: context?.lastTopic || null,
-                flightTime: context?.flightTime || null,
-                flightDestination: context?.flightDestination || null,
-                lastServiceType: context?.lastServiceType || null,
-                isGroupBooking: context?.isGroupBooking || false,
-                groupDetails: context?.groupDetails || null,
+            sessionId: sessionId,
+            context: createContextFields(context, {
+                lastTopic: 'unknown',
                 lastQuery: userMessage
-            }
+            })
         });
 
     } catch (error) {
@@ -857,15 +929,9 @@ app.post('/chat', verifyApiKey, async (req, res) => {
             message: errorMessage,
             language: isIcelandic ? 'is' : 'en',
             sessionId: sessionId,
-            context: {
-                lastTopic: context?.lastTopic || null,
-                flightTime: context?.flightTime || null,
-                flightDestination: context?.flightDestination || null,
-                lastServiceType: context?.lastServiceType || null,
-                isGroupBooking: context?.isGroupBooking || false,
-                groupDetails: context?.groupDetails || null,
+            context: createContextFields(context, {
                 lastQuery: userMessage || null
-            }
+            })
         });
     }
 });

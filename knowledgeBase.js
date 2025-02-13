@@ -1309,6 +1309,38 @@ const getRelevantKnowledge = (query, context = {}) => {
         confidence: 0
     };
 
+    // Check for casual chat patterns first
+    for (const [chatType, data] of Object.entries(casualChatPatterns)) {
+        if (data.patterns.test(query)) {
+            let response = data.responses[Math.floor(Math.random() * data.responses.length)];
+            
+            // Handle name extraction for introductions
+            if (chatType === 'introductions') {
+                const nameMatch = query.match(/(?:i'?m|my name is|this is)\s+([a-z]+)/i) || 
+                                query.match(/([a-z]+)\s+here/i);
+                if (nameMatch) {
+                    const name = nameMatch[1];
+                    response = response.replace('{name}', name.charAt(0).toUpperCase() + name.slice(1));
+                }
+            }
+
+            results.relevantInfo.push({
+                type: 'casual_chat',
+                chatType: chatType,
+                data: {
+                    response: response,
+                    shouldRedirect: true,
+                    context: context?.lastTopic ? {
+                        previousTopic: context.lastTopic,
+                        shouldResume: true
+                    } : null
+                }
+            });
+            results.confidence = 0.95;
+            return results;
+        }
+    }
+
     // Add the comparison handler here, before any other checks
     const queryType = detectQueryType(query);
     
@@ -1956,6 +1988,36 @@ const getRelevantKnowledge = (query, context = {}) => {
     return results;
 };
 
+// Add the helper function here, right after exports
+const createContextFields = (existingContext = {}, update = {}) => {
+    return {
+        // Meta fields
+        messages: existingContext?.messages || [],
+        language: existingContext?.language || 'en',
+        timestamp: Date.now(),
+        sessionId: existingContext?.sessionId || null,
+        
+        // Core context fields
+        lastTopic: update?.lastTopic || existingContext?.lastTopic || null,
+        flightTime: update?.flightTime || existingContext?.flightTime || null,
+        flightDestination: update?.flightDestination || existingContext?.flightDestination || null,
+        lastServiceType: update?.lastServiceType || existingContext?.lastServiceType || null,
+        isGroupBooking: update?.isGroupBooking || existingContext?.isGroupBooking || false,
+        groupDetails: update?.groupDetails || existingContext?.groupDetails || null,
+        lastQuery: update?.lastQuery || existingContext?.lastQuery || null,
+        
+        // Optional fields that might be present
+        chatType: update?.chatType || existingContext?.chatType || null,
+        needsDestination: update?.needsDestination || existingContext?.needsDestination || false,
+        isArrival: update?.isArrival || existingContext?.isArrival || false,
+        isConfirmation: update?.isConfirmation || existingContext?.isConfirmation || false,
+        
+        // Conversation flow fields
+        previousTopic: update?.previousTopic || existingContext?.previousTopic || null,
+        queryType: update?.queryType || existingContext?.queryType || null
+    };
+};
+
 // Export everything together
 export {
     flybusKnowledge,
@@ -1970,5 +2032,6 @@ export {
     enrichContext,        // Add these
     calculateGroupPrice,  // new exports
     parseGroupDetails,
-    detectQueryType    // Add this
+    detectQueryType,    // Add this
+    createContextFields    // Add this
 };
