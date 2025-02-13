@@ -890,7 +890,7 @@ app.post('/chat', verifyApiKey, async (req, res) => {
             language: isIcelandic ? 'is' : 'en',
             sessionId: sessionId,
             context: createContextFields(context, {
-                lastQuery: userMessage || null
+                lastQuery: userMessage || null  // Make sure userMessage is in scope
             })
         });
     }

@@ -904,9 +904,8 @@ const fuzzyMatch = (text, pattern) => {
 };
 
 // Service type detection
-const detectServiceType = (query) => {
-    if (!query) return 'standard';
-    
+const detectServiceType = (query = '') => {
+    if (!query || typeof query !== 'string') return 'standard';
     query = query.toLowerCase();
     
     // Check for Plus variations
@@ -1018,8 +1017,9 @@ const getContext = (sessionId) => {
 };
 
 // Add new functions here, after getContext and before LocationUtils
-const enrichContext = (context, query) => {
-    const serviceType = detectServiceType(query);
+const enrichContext = (context, input) => {
+    const query = input.message || '';
+    const serviceType = input.serviceType || detectServiceType(query)
     const groupMatch = query.match(/(\d+)\s*(adult|child|children|youth|teenager)/gi);
     const isGroupBooking = groupMatch !== null || context.isGroupBooking;
     
@@ -1409,9 +1409,8 @@ const getRelevantKnowledge = (query, context = {}) => {
     
     // Enrich context with new information
     const enrichedContext = enrichContext(context, {
-        ...query,
-        serviceType,
-        lastServiceType: serviceType
+        message: query,
+        serviceType: serviceType
     });
 
     // Add the console log here
