@@ -275,58 +275,6 @@ const getAcknowledgmentType = (message) => {
     return null;
 };
 
-// Language detection patterns for RE-specific terms
-const tourRelatedTerms = {
-    english: [
-        'golden circle', 'northern lights', 'blue lagoon', 'south coast',
-        'pick up', 'pickup', 'drop off', 'departure', 'arrival',
-        'tour', 'guide', 'bus', 'terminal', 'bsi', 'schedule',
-        'excursion', 'trip', 'booking', 'cancel', 'modify'
-    ],
-    icelandic: [
-        'gullni hringurinn', 'norðurljós', 'bláa lónið', 'suðurströndin',
-        'sækja', 'sæki', 'skutla', 'brottför', 'koma',
-        'ferð', 'leiðsögumaður', 'rúta', 'biðstöð', 'bsi', 'áætlun',
-        'skoðunarferð', 'ferðalag', 'bókun', 'afbóka', 'breyta'
-    ]
-};
-
-const casualChatPatterns = {
-    greetings: {
-        patterns: /^(hi|hey|hello|good\s*(morning|afternoon|evening)|hej|hæ)$/i,
-        responses: [
-            "Hello! I'd be happy to help you plan your Flybus journey today.",
-            "Hi there! How can I assist you with your airport transfer?",
-            "Welcome! I'm here to help with your Flybus transportation needs.",
-            "Hello! How can I help you with your travel plans today?"
-        ]
-    },
-    introductions: {
-        patterns: /^((i'?m|my name is|this is)\s+([a-z]+)|([a-z]+)\s+here)$/i,
-        responses: [
-            "Nice to meet you {name}! I'd be happy to help you plan your Flybus journey.",
-            "Hello {name}! How can I assist you with your airport transfer today?",
-            "Welcome {name}! I'm here to help with your Flybus travel needs."
-        ]
-    },
-    wellbeing: {
-        patterns: /^(how are (you|u)|how'?s it going|what'?s up|how are things|how('?s| is) your day)$/i,
-        responses: [
-            "I'm doing well, thank you! I'm here to help you plan your journey. How can I assist with your airport transfer?",
-            "Thanks for asking! I'm ready to help with your transportation needs. What would you like to know about our Flybus service?",
-            "Great, thank you! I'm here to help make your airport transfer smooth and easy. What can I help you with?"
-        ]
-    },
-    generic_chat: {
-        patterns: /^(nice to (meet|see) (you|u)|good to (meet|see) (you|u)|pleasure to meet you)$/i,
-        responses: [
-            "Likewise! I'm here to help make your journey smooth. What would you like to know about our Flybus service?",
-            "Thank you! I'm looking forward to helping you with your airport transfer needs. How can I assist?",
-            "The pleasure is mine! How can I help you with your Flybus journey today?"
-        ]
-    }
-};
-
 // Simple language detection - always returns English for demo
 const detectLanguage = (message) => {
     return false;  // Always return false to indicate English
