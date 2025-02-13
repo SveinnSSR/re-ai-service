@@ -156,6 +156,9 @@ const flybusKnowledge = {
             description: "Direct service to/from BSÍ Bus Terminal",
             rates: {
                 adult: {
+                    price: 3999,
+                    currency: "ISK",
+                    age_range: "16-99 years",  // Update this
                     oneway: {
                         price: 3999,
                         currency: "ISK"
@@ -169,7 +172,7 @@ const flybusKnowledge = {
                 youth: {
                     price: 2000,
                     currency: "ISK",
-                    age_range: "6-15 years",
+                    age_range: "6-15 years",   // Update this
                     oneway: {
                         price: 2000,
                         currency: "ISK"
@@ -182,7 +185,7 @@ const flybusKnowledge = {
                 children: {
                     price: 0,
                     currency: "ISK",
-                    age_range: "1-5 years",
+                    age_range: "1-5 years",    // Update this
                     oneway: {
                         price: 0,
                         currency: "ISK"
@@ -199,20 +202,23 @@ const flybusKnowledge = {
             description: "Includes hotel drop-off/pickup service",
             rates: {
                 adult: {
+                    price: 5199,
+                    currency: "ISK",
+                    age_range: "16-99 years",  // Update this
                     oneway: {
                         price: 5199,
                         currency: "ISK"
                     },
                     return: {
-                        price: 9399,  // Fix this from 10398
+                        price: 9399,
                         currency: "ISK",
-                        savings: 999  // Add this
+                        savings: 999
                     }
                 },
                 youth: {
                     price: 2600,
                     currency: "ISK",
-                    age_range: "6-15 years",
+                    age_range: "6-15 years",   // Update this
                     oneway: {
                         price: 2600,
                         currency: "ISK"
@@ -225,7 +231,7 @@ const flybusKnowledge = {
                 children: {
                     price: 0,
                     currency: "ISK",
-                    age_range: "1-5 years",
+                    age_range: "1-5 years",    // Update this
                     oneway: {
                         price: 0,
                         currency: "ISK"
@@ -1092,19 +1098,21 @@ const calculateJourneyTime = (serviceType, context = {}) => {
 
 const calculateGroupPrice = (adults, youths, children, serviceType, isReturn) => {
     const pricing = flybusKnowledge.pricing[serviceType];
+    const adultPrice = isReturn ? pricing.rates.adult.return.price : pricing.rates.adult.oneway.price;
+    const youthPrice = isReturn ? pricing.rates.youth.return.price : pricing.rates.youth.oneway.price;
+    
     return {
-        total: (adults * pricing.rates.adult[isReturn ? 'return' : 'oneway'].price) +
-               (youths * pricing.rates.youth[isReturn ? 'return' : 'oneway'].price),
+        total: (adults * adultPrice) + (youths * youthPrice), // Children are free
         breakdown: {
             adults: {
                 count: adults,
-                price: pricing.rates.adult[isReturn ? 'return' : 'oneway'].price,
-                subtotal: adults * pricing.rates.adult[isReturn ? 'return' : 'oneway'].price
+                price: adultPrice,
+                subtotal: adults * adultPrice
             },
             youths: {
                 count: youths,
-                price: pricing.rates.youth[isReturn ? 'return' : 'oneway'].price,
-                subtotal: youths * pricing.rates.youth[isReturn ? 'return' : 'oneway'].price
+                price: youthPrice,
+                subtotal: youths * youthPrice
             },
             children: {
                 count: children,
