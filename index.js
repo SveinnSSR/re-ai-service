@@ -14,7 +14,9 @@ import {
     getContext,
     createContextFields,  // Add this 
     tourRelatedTerms,     // Add this
-    casualChatPatterns    // Add this
+    casualChatPatterns,    // Add this
+    calculateJourneyTime,    // Add this
+    timingPatterns          // Add this
 } from './knowledgeBase.js';
 
 
@@ -262,15 +264,15 @@ const isGreeting = (message) => {
 const getAcknowledgmentType = (message) => {
     const msg = message.toLowerCase().trim();
     
-    if (/^(thanks|thank you|thx|ty|thank)\b/i.test(msg)) {
+    if (/^(?:thanks|thank\s*you|thx|ty|thankyou|thank\s*u)[\s,!.]*$/i.test(msg)) {
         return 'thanks';
     }
     
-    if (/^(ok|okay|got it|i see|alright|sure|right|understood)\b/i.test(msg)) {
+    if (/^(?:ok|okay|got\s*it|i\s*see|alright|sure|right|understood|yes|yeah|yep|yup)[\s,!.]*$/i.test(msg)) {
         return 'confirmation';
     }
     
-    if (/^(great|perfect|good|excellent|wonderful|awesome|nice|brilliant|amazing)\b/i.test(msg)) {
+    if (/^(?:great|perfect|good|excellent|wonderful|awesome|nice|brilliant|amazing|cool|fantastic|super|helpful|really\s*helpful)[\s,!.]*$/i.test(msg)) {
         return 'positive';
     }
     
@@ -673,6 +675,12 @@ app.post('/chat', verifyApiKey, async (req, res) => {
                     'Remember to use "our" when referring to services.'}
                 ${knowledgeBaseResults.relevantInfo[0].type !== 'casual_chat' ? 
                     'Include specific location information immediately when available.\n                Always mention bus stop numbers and names in first response.' : 
+                    ''}
+                ${knowledgeBaseResults.relevantInfo[0].type === 'route' ? 
+                    'When mentioning journey times, always specify the base journey time and any additional service time separately.' : 
+                    ''}
+                ${knowledgeBaseResults.relevantInfo[0]?.data?.duration?.total_time ? 
+                    `Total journey time: ${knowledgeBaseResults.relevantInfo[0].data.duration.total_time}` : 
                     ''}`;
 
             // Add context-specific guidance
@@ -700,9 +708,11 @@ app.post('/chat', verifyApiKey, async (req, res) => {
                                'User Message' : 'User Question'}: ${userMessage}
                              
                              Please provide a natural, conversational response using ONLY the information provided.
-                             ${knowledgeBaseResults.relevantInfo[0].type !== 'casual_chat' ? 
-                             'When mentioning locations, always include bus stop numbers and names immediately.' : 
-                             'Keep the response friendly but professional, and guide the conversation towards Flybus services.'}`
+                             ${knowledgeBaseResults.relevantInfo[0].type === 'route' ? 
+                               'Be specific about journey times. Separate base journey time and any additional service time.' :
+                               knowledgeBaseResults.relevantInfo[0].type !== 'casual_chat' ? 
+                               'When mentioning locations, always include bus stop numbers and names immediately.' : 
+                               'Keep the response friendly but professional, and guide the conversation towards Flybus services.'}`
                 }
             ];
 

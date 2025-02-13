@@ -842,7 +842,7 @@ const tourRelatedTerms = {
 
 const casualChatPatterns = {
     greetings: {
-        patterns: /^(hi|hey|hello|good\s*(morning|afternoon|evening)|hej|hæ)$/i,
+        patterns: /^\s*(hi|hey|hello|good\s*(morning|afternoon|evening)|hej|hæ)[\s,!]*$/i,
         responses: [
             "Hello! I'd be happy to help you plan your Flybus journey today.",
             "Hi there! How can I assist you with your airport transfer?",
@@ -851,7 +851,7 @@ const casualChatPatterns = {
         ]
     },
     introductions: {
-        patterns: /^((i'?m|my name is|this is)\s+([a-z]+)|([a-z]+)\s+here)$/i,
+        patterns: /^\s*((?:i'?m|my name'?s|my name is|this is)\s+([a-z]+)|(?:i'?m|this is)\s*([a-z]+)|([a-z]+)\s+here)[\s,!.]*$/i,
         responses: [
             "Nice to meet you {name}! I'd be happy to help you plan your Flybus journey.",
             "Hello {name}! How can I assist you with your airport transfer today?",
@@ -859,7 +859,7 @@ const casualChatPatterns = {
         ]
     },
     wellbeing: {
-        patterns: /^(how are (you|u)|how'?s it going|what'?s up|how are things|how('?s| is) your day)$/i,
+        patterns: /^\s*(how are (?:you|u)|how'?s (?:it going|things)|what'?s up|how'?s your day|how are things|how is your day)[\s?!]*$/i,
         responses: [
             "I'm doing well, thank you! I'm here to help you plan your journey. How can I assist with your airport transfer?",
             "Thanks for asking! I'm ready to help with your transportation needs. What would you like to know about our Flybus service?",
@@ -867,13 +867,20 @@ const casualChatPatterns = {
         ]
     },
     generic_chat: {
-        patterns: /^(nice to (meet|see) (you|u)|good to (meet|see) (you|u)|pleasure to meet you)$/i,
+        patterns: /^\s*(nice|good|great|lovely|pleasure)\s+to\s+(meet|see)\s+(you|u)[\s,!.]*$/i,
         responses: [
             "Likewise! I'm here to help make your journey smooth. What would you like to know about our Flybus service?",
             "Thank you! I'm looking forward to helping you with your airport transfer needs. How can I assist?",
             "The pleasure is mine! How can I help you with your Flybus journey today?"
         ]
     }
+};
+
+// Add this here, right after casualChatPatterns
+const timingPatterns = {
+    duration: /\b(how\s+long|duration|time\s+take|travel\s+time)\b/i,
+    plus_service: /\b(hotel\s+pickup|plus\s+service|with\s+plus)\b/i,
+    total_time: /\b(total\s+time|all\s+together|in\s+total)\b/i
 };
 
 // Fuzzy matching utilities.
@@ -898,9 +905,29 @@ const fuzzyMatch = (text, pattern) => {
 
 // Service type detection
 const detectServiceType = (query) => {
+    if (!query) return 'standard';
+    
     query = query.toLowerCase();
-    const plusVariations = ['plus', 'flybus+', 'flybus plus', 'flybus+'];
-    return plusVariations.some(v => query.includes(v)) ? 'plus' : 'standard';
+    
+    // Check for Plus variations
+    const plusIndicators = [
+        'plus',
+        'flybus+',
+        'flybus plus',
+        'hotel pickup',
+        'hotel service',
+        'hotel transfer',
+        'pickup service',
+        'to my hotel',
+        'from my hotel',
+        'hotel dropoff',
+        'door to door'
+    ];
+
+    // Check context and query
+    const isPlus = plusIndicators.some(indicator => query.includes(indicator));
+    
+    return isPlus ? 'plus' : 'standard';
 };
 
 // Query type detection
@@ -998,12 +1025,20 @@ const enrichContext = (context, query) => {
     
     return {
         ...context,
-        lastServiceType: serviceType,
+        lastServiceType: serviceType || context?.lastServiceType || 'standard',
         isGroupBooking,
         groupDetails: isGroupBooking ? (parseGroupDetails(query) || context.groupDetails) : null,
         previousQuery: context.lastQuery,
         lastQuery: query,
         queryType: detectQueryType(query),
+        // Add this timing context
+        timing: {
+            isTimingQuery: timingPatterns.duration.test(query) || 
+                          timingPatterns.plus_service.test(query) || 
+                          timingPatterns.total_time.test(query),
+            showTotalTime: timingPatterns.total_time.test(query),
+            includeHotelService: serviceType === 'plus' || context?.lastServiceType === 'plus'
+        },
         timestamp: Date.now()
     };
 };
@@ -1031,6 +1066,28 @@ const parseGroupDetails = (query) => {
     }
     
     return counts;
+};
+
+// Add after enrichContext but before getRelevantKnowledge
+const calculateJourneyTime = (serviceType, context = {}) => {
+    const baseTime = 45; // minutes
+    const hotelServiceTime = 30; // minutes
+    const isPlus = serviceType === 'plus' || context?.lastServiceType === 'plus';
+    
+    return {
+        baseTime,
+        hotelServiceTime: isPlus ? hotelServiceTime : 0,
+        totalTime: isPlus ? baseTime + hotelServiceTime : baseTime,
+        isPlus,
+        details: {
+            mainJourney: `${baseTime} minutes from Keflavík Airport to BSÍ Bus Terminal`,
+            hotelService: isPlus ? 
+                `Additional ${hotelServiceTime} minutes for hotel pickup/dropoff` : null,
+            total: isPlus ? 
+                `Total journey time approximately ${baseTime + hotelServiceTime} minutes (${baseTime} minutes airport transfer + ${hotelServiceTime} minutes hotel service)` :
+                `${baseTime} minutes from Keflavík Airport to BSÍ Bus Terminal`
+        }
+    };
 };
 
 const calculateGroupPrice = (adults, youths, children, serviceType, isReturn) => {
@@ -1347,13 +1404,21 @@ const generateFlightResponse = (query, flightContext) => {
 const getRelevantKnowledge = (query, context = {}) => {
     query = query.toLowerCase();
     
+    // Detect service type from query and context
+    const serviceType = detectServiceType(query) || context?.lastServiceType || 'standard';
+    
     // Enrich context with new information
-    const enrichedContext = enrichContext(context, query);
+    const enrichedContext = enrichContext(context, {
+        ...query,
+        serviceType,
+        lastServiceType: serviceType
+    });
 
     // Add the console log here
     console.log('\n=== Query Type Detection ===');
     console.log('Query:', query);
     console.log('Query type:', detectQueryType(query));    
+    console.log('Service type:', serviceType);
     
     const results = {
         relevantInfo: [],
@@ -1927,23 +1992,52 @@ const getRelevantKnowledge = (query, context = {}) => {
 
     // Route and journey queries
     if (query.includes('route') || query.includes('journey') || query.includes('path') || 
-        query.includes('stop') || query.includes('distance') || query.includes('far') || 
-        query.includes('how long') || query.includes('minutes') || query.includes('time') ||
-        query.includes('garðabær') || query.includes('hafnarfjörður')) {
-        results.relevantInfo.push({
-            type: 'route',
-            data: {
-                main_stops: ["Keflavík Airport", "Garðabær", "Hafnarfjörður", "BSÍ Terminal"],
-                duration: "45-50 minutes",
-                distance_details: "The journey from Keflavík Airport to BSÍ Bus Terminal takes about 45 minutes under normal conditions",
-                additional_info: "For Flybus+ (hotel transfer service), add approximately 30 minutes for hotel drop-offs",
-                stops_info: {
-                    gardabaer: "Optional stop at Garðabær (Aktu Taktu Gas station/Bus Stop Ásgarður C) - 5-10 minutes after BSÍ departure",
-                    hafnarfjordur: "Optional stop at Hafnarfjörður (Fjörukráin Hotel Viking) - 10-15 minutes after BSÍ departure"
-                }
+    query.includes('stop') || query.includes('distance') || query.includes('far') || 
+    query.includes('how long') || query.includes('minutes') || query.includes('time') ||
+    query.includes('garðabær') || query.includes('hafnarfjörður') ||
+    timingPatterns.duration.test(query) || 
+    timingPatterns.plus_service.test(query) || 
+    timingPatterns.total_time.test(query)) {
+        
+    const isServicePlus = serviceType === 'plus' || query.includes('plus') || 
+                         query.includes('hotel') || context?.lastServiceType === 'plus';
+    
+    results.relevantInfo.push({
+        type: 'route',
+        data: {
+            main_stops: ["Keflavík Airport", "Garðabær", "Hafnarfjörður", "BSÍ Terminal"],
+            duration: {
+                base: {
+                    time: "45 minutes",
+                    description: "Direct journey from Keflavík Airport to BSÍ Bus Terminal"
+                },
+                plus_service: {
+                    time: "30 minutes",
+                    description: "Additional time for hotel pickup/dropoff with Flybus+"
+                },
+                total_time: isServicePlus ? 
+                    "Total journey time approximately 75 minutes (45 minutes airport transfer + 30 minutes hotel service)" :
+                    "45 minutes from Keflavík Airport to BSÍ Bus Terminal",
+                conditions: "All times subject to road and traffic conditions"
+            },
+            service_type: isServicePlus ? "plus" : "standard",
+            distance_details: {
+                main_journey: "The main journey between Keflavík Airport and BSÍ Bus Terminal takes 45 minutes",
+                hotel_service: isServicePlus ?
+                    "Your Flybus+ service includes an additional 30 minutes for hotel pickup/dropoff" :
+                    "If you need hotel pickup/dropoff, Flybus+ service adds approximately 30 minutes to the journey"
+            },
+            additional_info: isServicePlus ?
+                "Please be ready at your hotel pickup location 30 minutes before your scheduled departure time" :
+                "Direct service to/from BSÍ Bus Terminal",
+            stops_info: {
+                bsi: "Main terminal - BSÍ Bus Terminal",
+                gardabaer: "Optional stop at Garðabær (Aktu Taktu Gas station/Bus Stop Ásgarður C) - 5-10 minutes after BSÍ departure",
+                hafnarfjordur: "Optional stop at Hafnarfjörður (Fjörukráin Hotel Viking) - 10-15 minutes after BSÍ departure"
             }
-        });
-        results.confidence = 0.9;
+        }
+    });
+    results.confidence = 0.9;
     }
 
     // Context handling for follow-up questions
@@ -2066,7 +2160,16 @@ const createContextFields = (existingContext = {}, update = {}) => {
         
         // Conversation flow fields
         previousTopic: update?.previousTopic || existingContext?.previousTopic || null,
-        queryType: update?.queryType || existingContext?.queryType || null
+        queryType: update?.queryType || existingContext?.queryType || null,
+        
+        // Route and journey specific fields
+        routeType: update?.routeType || existingContext?.routeType || 'airport_to_bsi',
+        serviceDetails: update?.serviceDetails || existingContext?.serviceDetails || null,
+        journeyContext: {
+            isReturn: update?.journeyContext?.isReturn || existingContext?.journeyContext?.isReturn || false,
+            hasHotelService: update?.journeyContext?.hasHotelService || existingContext?.journeyContext?.hasHotelService || false,
+            timing: update?.journeyContext?.timing || existingContext?.journeyContext?.timing || null
+        }
     };
 };
 
@@ -2087,5 +2190,7 @@ export {
     detectQueryType,    // Add this
     createContextFields,    // Add this
     tourRelatedTerms,     // Add this
-    casualChatPatterns    // Add this
+    casualChatPatterns,    // Add this
+    timingPatterns,
+    calculateJourneyTime
 };
