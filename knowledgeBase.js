@@ -2085,5 +2085,7 @@ export {
     calculateGroupPrice,  // new exports
     parseGroupDetails,
     detectQueryType,    // Add this
-    createContextFields    // Add this
+    createContextFields,    // Add this
+    tourRelatedTerms,     // Add this
+    casualChatPatterns    // Add this
 };

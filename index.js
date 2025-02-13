@@ -12,7 +12,9 @@ import {
     LocationUtils,
     updateContext,
     getContext,
-    createContextFields  // Add this 
+    createContextFields,  // Add this 
+    tourRelatedTerms,     // Add this
+    casualChatPatterns    // Add this
 } from './knowledgeBase.js';
 
 
