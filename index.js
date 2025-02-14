@@ -782,22 +782,27 @@ app.post('/chat', verifyApiKey, async (req, res) => {
                 Remember to use "our" when referring to services.
 
                 CRITICAL FORMATTING:
-                - Split response into EXACTLY two paragraphs
-                - Must have empty line between paragraphs
-                - First paragraph ends at maps URL
-                - Second paragraph starts on new line
+                - You MUST format your response in EXACTLY two paragraphs
+                - First paragraph MUST end with the maps URL
+                - You MUST have a blank line between paragraphs
+                - Second paragraph MUST start on a new line
                 
-                First paragraph:
-                - Location and core info ONLY
-                - End with maps URL
-                - Maximum 3 sentences before URL
-                - Format: "[Content]. View location: [maps_url] 📍"
+                First paragraph structure:
+                - State location/bus stop details first
+                - Include area restrictions if any
+                - End with EXACTLY this format: "View location: [maps_url] 📍"
+                - Nothing else after the maps URL
 
-                Second paragraph:
-                - Start on new line after maps URL
-                - Timing and contact info ONLY
-                - Never combine with first paragraph
-                - Maximum 3 sentences
+                Second paragraph structure:
+                - Start with "Please be ready"
+                - Include timing and contact details
+                - Include missed pickup procedure if relevant
+                - Must be separated by blank line from first paragraph
+                
+                Example format:
+                "For pickup from [hotel], please use bus stop X (Name). Due to traffic regulations, our buses use designated stops. View location: [maps_url] 📍
+
+                Please be ready 30 minutes before departure. If bus hasn't arrived after 20-25 minutes, call +354 599 0000. If you miss the pickup, you'll need to reach BSÍ Bus Terminal at your own expense."
 
                 ${knowledgeBaseResults.relevantInfo[0].type !== 'casual_chat' ? 
                     'Location Requirements:\n                - Include specific location details in first paragraph only\n                - Always include bus stop number AND name\n                - Maps URL must be at end of first paragraph\n                - Format: View location: [maps_url] 📍' : 
@@ -807,12 +812,7 @@ app.post('/chat', verifyApiKey, async (req, res) => {
                     ''}
                 ${knowledgeBaseResults.relevantInfo[0]?.data?.duration?.total_time ? 
                     `Total journey time: ${knowledgeBaseResults.relevantInfo[0].data.duration.total_time}` : 
-                    ''}
-                
-                Example format:
-                "For pickup from [hotel], please go to bus stop X (Name). Due to traffic regulations, our buses use designated stops. View location: [maps_url] 📍
-
-                Please be ready 30 minutes before departure. If bus hasn't arrived after 20-25 minutes, call +354 599 0000. [Additional info if needed]."`;
+                    ''}`;
 
             // Add context-specific guidance
             const contextPrompt = context.lastTopic ? 
