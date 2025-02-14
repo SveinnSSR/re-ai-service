@@ -54,14 +54,31 @@ const GLOBAL_STRUCTURE = `Response Structure Guidelines:
                      - ALWAYS structure ALL responses in exactly two paragraphs
                      - First paragraph (2-3 sentences):
                        * Core information first (location, timing, price, or main point)
-                       * If location involved, include maps link at end of paragraph
-                       * Format maps links as "View location on Google Maps 📍"
+                       * If location involved:
+                         > State specific location details (bus stop number/name)
+                         > Include maps URL from knowledge base data
+                         > Format as "[Location details]. View location: [maps_url] 📍"
+                         > Place maps URL at end of first paragraph ONLY
+                       * Never just say "View location on Google Maps 📍" without URL
                      - Second paragraph (2-3 sentences):
                        * Supporting details, procedures, or next steps
                        * Contact information if applicable (+354 599 0000)
+                     
+                     Maps URL Requirements:
+                     - ALWAYS use maps_url from location_info when available
+                     - Format: "[Previous content]. View location: [maps_url] 📍"
+                     - If no maps_url in data, do not include maps reference
+                     - Never output placeholder text without actual URL
+                     
+                     Paragraph Structure:
                      - Never combine paragraphs
                      - Never create more than two paragraphs
-                     - Line break between paragraphs is required`;
+                     - Line break between paragraphs is required
+                     
+                     Example with location:
+                     "For pickup from [hotel], please go to bus stop X (Street Name). Due to traffic regulations, our buses use designated stops. View location: https://www.google.com/maps/... 📍
+                     
+                     Please be ready 30 minutes before departure. If bus hasn't arrived after 20-25 minutes, call +354 599 0000."`;
 
 // System Prompts for Response Control
 const SYSTEM_PROMPTS = {
