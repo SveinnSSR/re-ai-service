@@ -415,7 +415,7 @@ const flybusKnowledge = {
                 name: "Ráðhúsið - City Hall",
                 location_info: {
                     coordinates: { lat: "64.146316", lng: "-21.941491" },
-                    maps_url: "https://www.google.com/maps/dir/64.146316,-21.941491",
+                    maps_url: "https://www.google.com/maps/dir/64.146316,-21.941491/@64.146316,-21.941491,18z",
                     area: "downtown"
                 },
                 serviced_hotels: [
@@ -439,7 +439,7 @@ const flybusKnowledge = {
                 name: "Tjörnin - The Pond",
                 location_info: {
                     coordinates: { lat: "64.145763", lng: "-21.938547" },
-                    maps_url: "https://www.google.com/maps/dir/64.145763,-21.938547",
+                    maps_url: "https://www.google.com/maps/dir/64.145763,-21.938547/@64.145763,-21.938547,18z",
                     area: "downtown"
                 },
                 serviced_hotels: [
@@ -455,7 +455,7 @@ const flybusKnowledge = {
                 name: "Lækjargata",
                 location_info: {
                     coordinates: { lat: "64.14678", lng: "-21.937296" },
-                    maps_url: "https://www.google.com/maps/dir/64.14678,-21.937296",
+                    maps_url: "https://www.google.com/maps/dir/64.14678,-21.937296/@64.14678,-21.937296,18z",
                     area: "downtown"
                 },
                 serviced_hotels: [
@@ -477,7 +477,7 @@ const flybusKnowledge = {
                 name: "Miðbakki Harbour",
                 location_info: {
                     coordinates: { lat: "64.150278", lng: "-21.9405" },
-                    maps_url: "https://www.google.com/maps/dir/64.150278,-21.9405",
+                    maps_url: "https://www.google.com/maps/dir/64.150278,-21.9405/@64.15027,-21.9405,18z",
                     area: "harbor"
                 },
                 serviced_hotels: [
@@ -491,7 +491,7 @@ const flybusKnowledge = {
                 name: "Harpa",
                 location_info: {
                     coordinates: { lat: "64.149766", lng: "-21.929865" },
-                    maps_url: "https://www.google.com/maps/dir/64.149766,-21.929865",
+                    maps_url: "https://www.google.com/maps/dir/64.149766,-21.929865/@64.149766,-21.929865,18z",
                     area: "harbor"
                 },
                 serviced_hotels: [
@@ -503,7 +503,7 @@ const flybusKnowledge = {
                 name: "Safnahúsið - The Culture House",
                 location_info: {
                     coordinates: { lat: "64.147454", lng: "-21.932894" },
-                    maps_url: "https://www.google.com/maps/dir/64.147454,-21.932894",
+                    maps_url: "https://www.google.com/maps/dir/64.147454,-21.932894/@64.147454,-21.932894,18z",
                     area: "downtown"
                 },
                 serviced_hotels: [
@@ -520,7 +520,7 @@ const flybusKnowledge = {
                 name: "Hallgrímskirkja",
                 location_info: {
                     coordinates: { lat: "64.141548", lng: "-21.927973" },
-                    maps_url: "https://www.google.com/maps/dir/64.141548,-21.927973",
+                    maps_url: "https://www.google.com/maps/dir/64.141548,-21.927973/@64.141548,-21.927973,18z",
                     area: "hallgrimskirkja_area"
                 },
                 serviced_hotels: [
@@ -545,7 +545,7 @@ const flybusKnowledge = {
                 name: "Snorrabraut",
                 location_info: {
                     coordinates: { lat: "64.143497", lng: "-21.916289" },
-                    maps_url: "https://www.google.com/maps/dir/64.143497,-21.916289",
+                    maps_url: "https://www.google.com/maps/dir/64.143497,-21.916289/@64.143497,-21.916289,18z",
                     area: "laugavegur"
                 },
                 serviced_hotels: [
@@ -576,7 +576,7 @@ const flybusKnowledge = {
                 name: "Austurbær",
                 location_info: {
                     coordinates: { lat: "64.142364", lng: "-21.917228" },
-                    maps_url: "https://www.google.com/maps/dir/64.142364,-21.917228",
+                    maps_url: "https://www.google.com/maps/dir/64.142364,-21.917228/@64.142364,-21.917228,18z",
                     area: "east_central"
                 },
                 serviced_hotels: [
@@ -590,7 +590,7 @@ const flybusKnowledge = {
                 name: "Höfðatorg",
                 location_info: {
                     coordinates: { lat: "64.144389", lng: "-21.910327" },
-                    maps_url: "https://www.google.com/maps/dir/64.144389,-21.910327",
+                    maps_url: "https://www.google.com/maps/dir/64.144389,-21.910327/@64.144389,-21.910327,18z",
                     area: "business_district"
                 },
                 serviced_hotels: [
@@ -607,7 +607,7 @@ const flybusKnowledge = {
                 name: "Rauðarárstígur",
                 location_info: {
                     coordinates: { lat: "64.142658", lng: "-21.913866" },
-                    maps_url: "https://www.google.com/maps/dir/64.142658,-21.913866",
+                    maps_url: "https://www.google.com/maps/dir/64.142658,-21.913866/@64.142658,-21.913866,18z",
                     area: "east_central"
                 },
                 serviced_hotels: [
@@ -624,7 +624,7 @@ const flybusKnowledge = {
                 name: "Skúlagata",
                 location_info: {
                     coordinates: { lat: "64.148165", lng: "-21.927858" },
-                    maps_url: "https://www.google.com/maps/dir/64.148165,-21.927858",
+                    maps_url: "https://www.google.com/maps/dir/64.148165,-21.927858/@64.148165,-21.927858,18z",
                     area: "city_center"
                 },
                 serviced_hotels: [
@@ -661,7 +661,7 @@ const flybusKnowledge = {
                 name: "Vesturbugt",
                 location_info: {
                     coordinates: { lat: "64.151764", lng: "-21.949277" },
-                    maps_url: "https://www.google.com/maps/dir/64.151764,-21.949277",
+                    maps_url: "https://www.google.com/maps/dir/64.151764,-21.949277/@64.151764,-21.949277,18z",
                     area: "west_harbor"
                 },
                 serviced_hotels: [
@@ -1800,7 +1800,7 @@ const getRelevantKnowledge = (query, context = {}) => {
             const stopInfo = flybusKnowledge.locations.bus_stops[stopNumber];
             if (stopInfo) {
                 const coords = stopInfo.location_info.coordinates;
-                const mapsUrl = `https://www.google.com/maps/dir/${coords.lat},${coords.lng}`;
+                const mapsUrl = `https://www.google.com/maps/dir/${coords.lat},${coords.lng}/@${coords.lat},${coords.lng},18z`;
                 
                 results.relevantInfo.push({
                     type: 'bus_stop',
@@ -1830,7 +1830,7 @@ const getRelevantKnowledge = (query, context = {}) => {
             
             if (foundHotel) {
                 const coords = stop.location_info.coordinates;
-                const mapsUrl = `https://www.google.com/maps/dir/${coords.lat},${coords.lng}`;
+                const mapsUrl = `https://www.google.com/maps/dir/${coords.lat},${coords.lng}/@${coords.lat},${coords.lng},18z`;
                 
                 results.relevantInfo.push({
                     type: 'hotel_location',
