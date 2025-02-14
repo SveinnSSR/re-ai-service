@@ -756,39 +756,26 @@ app.post('/chat', verifyApiKey, async (req, res) => {
 
             // Build base system prompt
             const basePrompt = `${systemPrompt}
-                ${isMultiPart ? 'This is a multi-part question. Address each part separately while maintaining two-paragraph structure.' : ''}
+                ${isMultiPart ? 'This is a multi-part question. Address each part separately.' : ''}
                 Respond in ${isIcelandic ? 'Icelandic' : 'English'}. 
                 Use only the information provided in the knowledge base.
                 Remember to use "our" when referring to services.
-
-                Response Structure Requirements:
-                - First paragraph must contain core information
-                - Second paragraph must contain supporting details
-                - Maintain exactly two paragraphs with line break between them
+                Structure all responses in exactly two paragraphs with a line break between them.
                 ${knowledgeBaseResults.relevantInfo[0].type !== 'casual_chat' ? 
-                    `Location Requirements:
-                    - Include specific location details in first paragraph
-                    - Always mention bus stop numbers and names in first response
-                    - Place maps URL at end of first paragraph
-                    - Format maps URL as "View location on Google Maps 📍"` : 
+                    'Include specific location information immediately when available.\n                Always mention bus stop numbers and names in first response.\n                Always include maps URL when available.\n                Format any maps links as "View location on Google Maps 📍"' : 
                     ''}
                 ${knowledgeBaseResults.relevantInfo[0].type === 'route' ? 
-                    `Timing Requirements:
-                    - State base journey time in first paragraph
-                    - Include any additional service time in second paragraph
-                    - Clearly separate base time and additional service time` : 
+                    'When mentioning journey times, always specify the base journey time and any additional service time separately.' : 
                     ''}
                 ${knowledgeBaseResults.relevantInfo[0]?.data?.duration?.total_time ? 
                     `Total journey time: ${knowledgeBaseResults.relevantInfo[0].data.duration.total_time}` : 
                     ''}`;
 
-            // Add context-specific guidance with structure enforcement
+            // Add context-specific guidance
             const contextPrompt = context.lastTopic ? 
                 `Previous topic was about ${context.lastTopic}. Maintain relevant context.
-                 ${knowledgeBaseResults.relevantInfo[0].type !== 'casual_chat' ? 
-                   `- If location previously provided, include in first paragraph
-                    - Include maps URL at end of first paragraph
-                    - Keep supporting details in second paragraph` : ''}` : '';
+                 ${knowledgeBaseResults.relevantInfo[0].type !== 'casual_chat' && 
+                   'If location information was previously provided, include it again with maps URL.'}` : '';
 
             // Prepare messages for OpenAI
             const messages = [
