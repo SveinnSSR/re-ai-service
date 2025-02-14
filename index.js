@@ -754,7 +754,7 @@ app.post('/chat', verifyApiKey, async (req, res) => {
             const isMultiPart = userMessage.includes(' and ') || 
                                (userMessage.match(/\?/g) || []).length > 1;
 
-            // Build base system prompt
+            // Build base system prompt. Fixed
             const basePrompt = `${systemPrompt}
                 ${isMultiPart ? 'This is a multi-part question. Address each part separately.' : ''}
                 Respond in ${isIcelandic ? 'Icelandic' : 'English'}. 
