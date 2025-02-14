@@ -145,30 +145,73 @@ const SYSTEM_PROMPTS = {
                     - End with practical next steps`,
 
     pickup_timing: `When handling pickup timing queries:
-                   - Always emphasize pickup starts 30 minutes before departure
-                   - State clearly that pickup and departure times are different
-                   - Key points to cover:
-                     * Be ready and visible outside at pickup location
-                     * Bus arrives within 30-minute window
-                     * If bus hasn't arrived after 20-25 minutes, contact +354 599 0000
-                   - For city center locations:
-                     * Due to city traffic regulations, some areas are restricted
-                     * ALWAYS mention BOTH bus stop number AND street name in first response
-                     * Format as "bus stop X (Street Name)"
-                     * Note same location for pickup and drop-off
-                   - Include passenger responsibilities:
-                     * Must be ready outside
-                     * Must be visible to driver
-                     * For missed pickups: Must reach BSÍ at own cost for scheduled departure
-                   - When providing hotel pickup locations:
-                     * Always include bus stop number if applicable in first response
-                     * Include complete location: "bus stop X (Street Name)"
-                     * For direct pickup hotels, explicitly state "direct doorstep pickup service"
-                     * For restricted area hotels, explain bus stop requirement
-                   - Never omit bus stop numbers and names:
-                     * Include in first response, don't wait for follow-up questions
-                     * Always format as "bus stop X (Street Name)"
-                     * Specify if it's direct doorstep pickup immediately`,
+                    - Break responses into clear, logical paragraphs
+                    - First paragraph: Location and core timing
+                      * Start with location details
+                      * Emphasize pickup starts 30 minutes before departure
+                      * State clearly that pickup and departure times are different
+                    
+                    - Key points to cover:
+                      * Be ready and visible outside at pickup location
+                      * Bus arrives within 30-minute window
+                      * If bus hasn't arrived after 20-25 minutes, contact +354 599 0000
+                    
+                    - For city center locations:
+                      * Due to city traffic regulations, some areas are restricted
+                      * ALWAYS mention BOTH bus stop number AND street name in first response
+                      * Format as "bus stop X (Street Name)"
+                      * ALWAYS include maps URL when available: maps_url from location_info
+                      * Note same location for pickup and drop-off
+                    
+                    - Include passenger responsibilities:
+                      * Must be ready outside
+                      * Must be visible to driver
+                      * For missed pickups: Must reach BSÍ at own cost for scheduled departure
+                    
+                    - When providing hotel pickup locations:
+                      * Always include bus stop number if applicable in first response
+                      * Include complete location: "bus stop X (Street Name)"
+                      * For direct pickup hotels, explicitly state "direct doorstep pickup service"
+                      * For restricted area hotels, explain bus stop requirement
+                      * ALWAYS include maps link when available
+                    
+                    - Never omit bus stop numbers and names:
+                      * Include in first response, don't wait for follow-up questions
+                      * Always format as "bus stop X (Street Name)"
+                      * Specify if it's direct doorstep pickup immediately
+                    
+                    - Structure responses in two clear paragraphs:
+                      * First paragraph: Location details and maps link
+                      * Second paragraph: Timing and procedure`,
+ 
+     location_info: `When providing location information:
+                    - ALWAYS check and include maps URL from location_info
+                    - Present information in clear sections:
+                      * Location details first (bus stop or hotel)
+                      * Maps link immediately after location
+                      * Area description and nearby landmarks
+                      * Pickup/dropoff instructions
+                    
+                    - For bus stops:
+                      * Format as "bus stop X (Street Name)"
+                      * Include maps_url
+                      * List nearby hotels served by this stop
+                      * Mention walking distances if available
+                    
+                    - For hotels:
+                      * Specify if direct pickup or nearest bus stop
+                      * Include maps link for either option
+                      * Mention any area restrictions
+                      * Include alternative stops if primary is unavailable
+                    
+                    - Always maintain format consistency:
+                      * Location names exactly as in database
+                      * Bus stop numbers in standard format
+                      * Maps links in consistent position
+                    
+                    - Structure responses in two paragraphs:
+                      * First: Location and access details
+                      * Second: Practical instructions`,
                       
     fleet_info: `When describing our fleet:
                 - Keep responses to 2-3 sentences for basic queries, 4-5 for complex ones
@@ -660,7 +703,9 @@ app.post('/chat', verifyApiKey, async (req, res) => {
                 info.type === 'hotel_location' || 
                 info.type === 'bus_stop' ||
                 info.type === 'location_restrictions')) {
-                systemPrompt = SYSTEM_PROMPTS.pickup_timing;
+                systemPrompt = knowledgeBaseResults.queryType === 'location_search' ? 
+                    SYSTEM_PROMPTS.location_info : 
+                    SYSTEM_PROMPTS.pickup_timing;
             } else if (knowledgeBaseResults.relevantInfo.some(info => info.type === 'fleet_info')) {
                 systemPrompt = SYSTEM_PROMPTS.fleet_info;
             } else if (knowledgeBaseResults.relevantInfo.some(info => info.type === 'safety')) {
@@ -680,7 +725,7 @@ app.post('/chat', verifyApiKey, async (req, res) => {
                 Use only the information provided in the knowledge base.
                 Remember to use "our" when referring to services.
                 ${knowledgeBaseResults.relevantInfo[0].type !== 'casual_chat' ? 
-                    'Include specific location information immediately when available.\n                Always mention bus stop numbers and names in first response.' : 
+                    'Include specific location information immediately when available.\n                Always mention bus stop numbers and names in first response.\n                Always include maps URL when available.' : 
                     ''}
                 ${knowledgeBaseResults.relevantInfo[0].type === 'route' ? 
                     'When mentioning journey times, always specify the base journey time and any additional service time separately.' : 
@@ -693,7 +738,7 @@ app.post('/chat', verifyApiKey, async (req, res) => {
             const contextPrompt = context.lastTopic ? 
                 `Previous topic was about ${context.lastTopic}. Maintain relevant context.
                  ${knowledgeBaseResults.relevantInfo[0].type !== 'casual_chat' && 
-                   'If location information was previously provided, include it again.'}` : '';
+                   'If location information was previously provided, include it again with maps URL.'}` : '';
 
             // Prepare messages for OpenAI
             const messages = [
