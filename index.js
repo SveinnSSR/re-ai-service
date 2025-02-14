@@ -781,18 +781,23 @@ app.post('/chat', verifyApiKey, async (req, res) => {
                 Use only the information provided in the knowledge base.
                 Remember to use "our" when referring to services.
 
-                CRITICAL: Structure requirements
-                1. MUST have exactly TWO paragraphs separated by a line break
-                2. First paragraph:
-                   - Core information only (location, bus stop, timing, price)
-                   - Keep to 2-3 sentences maximum
-                   - End with maps URL if location involved
-                   - Format: "[Content]. View location: [maps_url] 📍"
-                3. Second paragraph:
-                   - Only supporting details (waiting times, contact info, next steps)
-                   - Keep to 2-3 sentences maximum
-                   - Never combine with first paragraph
-                4. Never create more than two paragraphs
+                CRITICAL FORMATTING:
+                - Split response into EXACTLY two paragraphs
+                - Must have empty line between paragraphs
+                - First paragraph ends at maps URL
+                - Second paragraph starts on new line
+                
+                First paragraph:
+                - Location and core info ONLY
+                - End with maps URL
+                - Maximum 3 sentences before URL
+                - Format: "[Content]. View location: [maps_url] 📍"
+
+                Second paragraph:
+                - Start on new line after maps URL
+                - Timing and contact info ONLY
+                - Never combine with first paragraph
+                - Maximum 3 sentences
 
                 ${knowledgeBaseResults.relevantInfo[0].type !== 'casual_chat' ? 
                     'Location Requirements:\n                - Include specific location details in first paragraph only\n                - Always include bus stop number AND name\n                - Maps URL must be at end of first paragraph\n                - Format: View location: [maps_url] 📍' : 

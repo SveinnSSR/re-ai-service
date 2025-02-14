@@ -1760,9 +1760,60 @@ const getRelevantKnowledge = (query, context = {}) => {
         query.includes('drop') || query.includes('downtown') || query.includes('terminal')) {
         
         // First check direct pickup hotels
-        const directPickupHotel = flybusKnowledge.locations.direct_pickup.hotels.find(hotel => 
-            query.toLowerCase().includes(hotel.name.toLowerCase())
-        );
+        const directPickupHotel = flybusKnowledge.locations.direct_pickup.hotels.find(hotel => {
+            const hotelName = hotel.name.toLowerCase();
+            const queryTerms = query.toLowerCase();
+            
+            // Check for exact matches
+            if (queryTerms.includes(hotelName)) return true;
+            
+            // Check for common variations
+            const variations = [
+                hotelName,
+                hotelName.replace('hotel', '').trim(),
+                hotelName.replace('hostel', '').trim(),
+                hotelName.replace('hótel', '').trim(),
+                hotelName.replace('apartments', '').trim(),
+                hotelName.replace('apartment', '').trim(),
+                hotelName.replace('guesthouse', '').trim()
+            ];
+            
+            // Add specific matches for problematic hotels
+            if (hotelName.includes('kex')) {
+                variations.push('kex');
+            }
+            if (hotelName.includes('nordica')) {
+                variations.push('hilton');
+                variations.push('hilton nordica');
+            }
+            if (hotelName.includes('centerhotel')) {
+                variations.push('center hotel');
+                variations.push(hotelName.replace('centerhotel', '').trim());
+            }
+            if (hotelName.includes('fosshotel')) {
+                variations.push('foss hotel');
+                variations.push(hotelName.replace('fosshotel', '').trim());
+            }
+            if (hotelName.includes('grand')) {
+                variations.push('grand hotel');
+                variations.push('grand');
+            }
+            
+            // Convert Icelandic characters for matching
+            variations.push(...variations.map(v => v
+                .replace(/á/g, 'a')
+                .replace(/é/g, 'e')
+                .replace(/í/g, 'i')
+                .replace(/ó/g, 'o')
+                .replace(/ú/g, 'u')
+                .replace(/ý/g, 'y')
+                .replace(/þ/g, 'th')
+                .replace(/æ/g, 'ae')
+                .replace(/ö/g, 'o')
+            ));
+            
+            return variations.some(v => queryTerms.includes(v));
+        });
 
         if (directPickupHotel) {
             results.relevantInfo.push({
@@ -1800,7 +1851,7 @@ const getRelevantKnowledge = (query, context = {}) => {
             const stopInfo = flybusKnowledge.locations.bus_stops[stopNumber];
             if (stopInfo) {
                 const coords = stopInfo.location_info.coordinates;
-                const mapsUrl = `https://www.google.com/maps/dir/${coords.lat},${coords.lng}/@${coords.lat},${coords.lng},18z`;
+                const mapsUrl = `https://www.google.com/maps/@${coords.lat},${coords.lng},18z`;
                 
                 results.relevantInfo.push({
                     type: 'bus_stop',
@@ -1822,6 +1873,42 @@ const getRelevantKnowledge = (query, context = {}) => {
             }
         }
 
+        // Add landmark matching
+        const landmarkMatches = {
+            'hallgrimskirkja': ['hallgrimskirkja', 'hallgrímskirkja', 'hallgríms', 'church']
+        };
+
+        // Check for landmarks and match to correct bus stop
+        for (const [landmark, variations] of Object.entries(landmarkMatches)) {
+            if (variations.some(v => query.toLowerCase().includes(v))) {
+                // Find bus stop for landmark
+                for (const [stopNum, stop] of Object.entries(flybusKnowledge.locations.bus_stops)) {
+                    if (stop.name.toLowerCase().includes(landmark)) {
+                        const coords = stop.location_info.coordinates;
+                        const mapsUrl = `https://www.google.com/maps/@${coords.lat},${coords.lng},18z`;
+                        
+                        results.relevantInfo.push({
+                            type: 'bus_stop',
+                            data: {
+                                number: stopNum,
+                                name: stop.name,
+                                location: {
+                                    ...stop.location_info,
+                                    maps_url: mapsUrl
+                                },
+                                serviced_hotels: stop.serviced_hotels,
+                                area: stop.location_info.area,
+                                pickup_instructions: `Please wait at bus stop ${stopNum} (${stop.name}) 30 minutes before your scheduled departure time.`,
+                                timing_rules: flybusKnowledge.locations.general_info.timing_rules
+                            }
+                        });
+                        results.confidence = 0.95;
+                        return results;
+                    }
+                }
+            }
+        }
+
         // Check for hotel queries in bus stops
         for (const [stopNum, stop] of Object.entries(flybusKnowledge.locations.bus_stops)) {
             const foundHotel = stop.serviced_hotels.find(hotel => 
@@ -1830,7 +1917,7 @@ const getRelevantKnowledge = (query, context = {}) => {
             
             if (foundHotel) {
                 const coords = stop.location_info.coordinates;
-                const mapsUrl = `https://www.google.com/maps/dir/${coords.lat},${coords.lng}/@${coords.lat},${coords.lng},18z`;
+                const mapsUrl = `https://www.google.com/maps/@${coords.lat},${coords.lng},18z`;
                 
                 results.relevantInfo.push({
                     type: 'hotel_location',
