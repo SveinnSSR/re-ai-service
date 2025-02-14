@@ -65,19 +65,7 @@ const GLOBAL_STRUCTURE = `Response Structure Guidelines:
 
 // System Prompts for Response Control
 const SYSTEM_PROMPTS = {
-    global_structure: GLOBAL_STRUCTURE
-                     `Response Structure Guidelines:
-                     - ALWAYS structure ALL responses in exactly two paragraphs
-                     - First paragraph (2-3 sentences):
-                       * Core information first (location, timing, price, or main point)
-                       * If location involved, include maps link at end of paragraph
-                       * Format maps links as "View location on Google Maps 📍"
-                     - Second paragraph (2-3 sentences):
-                       * Supporting details, procedures, or next steps
-                       * Contact information if applicable (+354 599 0000)
-                     - Never combine paragraphs
-                     - Never create more than two paragraphs
-                     - Line break between paragraphs is required`,
+    global_structure: GLOBAL_STRUCTURE,  // Just reference it, don't add template literal
 
     casual_chat: `When handling casual conversation and introductions:
                  - Maintain a warm, professional tone
