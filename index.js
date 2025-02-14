@@ -466,9 +466,15 @@ app.post('/chat', verifyApiKey, async (req, res) => {
 
         // Initialize or get context with enhanced flight tracking
         let context = getContext(sessionId);
+        
+        console.log('\n=== Context Initialization ===');
+        console.log('SessionId:', sessionId);
+        console.log('Existing context:', context);
+        
         const newContext = createContextFields({}, {
             language: isIcelandic ? 'is' : 'en',
-            sessionId: sessionId
+            sessionId: sessionId,
+            timestamp: Date.now()
         });
 
         if (context) {
@@ -476,15 +482,22 @@ app.post('/chat', verifyApiKey, async (req, res) => {
             context = {
                 ...context,
                 timestamp: Date.now(),
-                language: isIcelandic ? 'is' : 'en'
+                language: isIcelandic ? 'is' : 'en',
+                sessionId: sessionId  // Ensure sessionId is preserved
             };
             console.log('\n=== Retrieved Existing Context ===');
             console.log('Context:', context);
             console.log('Age:', Date.now() - context.timestamp, 'ms');
+            
+            // Store updated context
+            updateContext(sessionId, context);
         } else {
             context = newContext;
             console.log('\n=== Created New Context ===');
             console.log('New Context:', context);
+            
+            // Store new context
+            updateContext(sessionId, context);
         }
 
         // Enhanced flight context handling
@@ -599,7 +612,6 @@ app.post('/chat', verifyApiKey, async (req, res) => {
 
         // If we have relevant knowledge, generate response using OpenAI
         if (knowledgeBaseResults.relevantInfo.length > 0) {
-
             // Add this section for casual chat handling
             if (knowledgeBaseResults.relevantInfo[0].type === 'casual_chat') {
                 const chatResponse = knowledgeBaseResults.relevantInfo[0];
@@ -627,12 +639,8 @@ app.post('/chat', verifyApiKey, async (req, res) => {
             // Determine which system prompt to use
             let systemPrompt = SYSTEM_PROMPTS.default;
             
-            // Check for casual chat first
-            if (knowledgeBaseResults.relevantInfo[0].type === 'casual_chat') {
-                systemPrompt = SYSTEM_PROMPTS.casual_chat;
-            }
             // Enhanced prompt selection based on query type
-            else if (knowledgeBaseResults.queryType === 'comparison') {
+            if (knowledgeBaseResults.queryType === 'comparison') {
                 systemPrompt = SYSTEM_PROMPTS.comparison;
             } else if (knowledgeBaseResults.queryType === 'booking') {
                 systemPrompt = SYSTEM_PROMPTS.booking;
@@ -670,9 +678,7 @@ app.post('/chat', verifyApiKey, async (req, res) => {
                 ${isMultiPart ? 'This is a multi-part question. Address each part separately.' : ''}
                 Respond in ${isIcelandic ? 'Icelandic' : 'English'}. 
                 Use only the information provided in the knowledge base.
-                ${knowledgeBaseResults.relevantInfo[0].type === 'casual_chat' ? 
-                    'Remember to keep responses warm but professional and guide back to Flybus services.' : 
-                    'Remember to use "our" when referring to services.'}
+                Remember to use "our" when referring to services.
                 ${knowledgeBaseResults.relevantInfo[0].type !== 'casual_chat' ? 
                     'Include specific location information immediately when available.\n                Always mention bus stop numbers and names in first response.' : 
                     ''}

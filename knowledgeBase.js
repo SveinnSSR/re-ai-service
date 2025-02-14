@@ -126,7 +126,6 @@ const flybusKnowledge = {
             "safety", "guarantee", "vehicle", "transport"
         ]
     },
-    // Add pickup_timing section here, right after basic_info
     pickup_timing: {
         general_rules: {
             window: "30 minutes before departure",
@@ -149,6 +148,28 @@ const flybusKnowledge = {
         },
         responsibility: "Passengers are responsible for being ready and visible for pickup",
         contact: "+354 599 0000"
+    },
+    age_info: {
+        adults: {
+            range: "16-99 years",
+            description: "Full fare",
+            notes: "Regular adult pricing applies"
+        },
+        youth: {
+            range: "6-15 years",
+            description: "Youth fare",
+            notes: "Discounted rate for youth travelers"
+        },
+        children: {
+            range: "1-5 years",
+            description: "Travel free when accompanied by an adult",
+            notes: "Maximum 2 children per adult"
+        },
+        restrictions: {
+            youth_per_adult: 40,
+            children_per_adult: 2,
+            notes: "Age verification may be required"
+        }
     },
     pricing: {
         standard: {
@@ -848,7 +869,7 @@ const tourRelatedTerms = {
 
 const casualChatPatterns = {
     greetings: {
-        patterns: /^\s*(hi|hey|hello|good\s*(morning|afternoon|evening)|hej|hæ)[\s,!]*$/i,
+        patterns: /^(hi|hey|hello|good\s*(morning|afternoon|evening)|hej|hæ)[\s,!]*$/i,
         responses: [
             "Hello! I'd be happy to help you plan your Flybus journey today.",
             "Hi there! How can I assist you with your airport transfer?",
@@ -857,7 +878,7 @@ const casualChatPatterns = {
         ]
     },
     introductions: {
-        patterns: /^\s*((?:i'?m|my name'?s|my name is|this is)\s+([a-z]+)|(?:i'?m|this is)\s*([a-z]+)|([a-z]+)\s+here)[\s,!.]*$/i,
+        patterns: /^(hi,?\s+)?(i'?m|my name is|this is)\s+([a-z]+)[\s,!.]*$/i,
         responses: [
             "Nice to meet you {name}! I'd be happy to help you plan your Flybus journey.",
             "Hello {name}! How can I assist you with your airport transfer today?",
@@ -865,7 +886,7 @@ const casualChatPatterns = {
         ]
     },
     wellbeing: {
-        patterns: /^\s*(how are (?:you|u)|how'?s (?:it going|things)|what'?s up|how'?s your day|how are things|how is your day)[\s?!]*$/i,
+        patterns: /^(hi,?\s+)?how(?:'?s| is| are)\s+(?:you|u|it going|things)(?:\s+doing)?[\s?!.]*$/i,
         responses: [
             "I'm doing well, thank you! I'm here to help you plan your journey. How can I assist with your airport transfer?",
             "Thanks for asking! I'm ready to help with your transportation needs. What would you like to know about our Flybus service?",
@@ -1025,19 +1046,41 @@ const getContext = (sessionId) => {
 // Add new functions here, after getContext and before LocationUtils
 const enrichContext = (context, input) => {
     const query = input.message || '';
-    const serviceType = input.serviceType || detectServiceType(query)
-    const groupMatch = query.match(/(\d+)\s*(adult|child|children|youth|teenager)/gi);
-    const isGroupBooking = groupMatch !== null || context.isGroupBooking;
+    const serviceType = input.serviceType || detectServiceType(query);
+    
+    console.log('\n=== Group Detection in enrichContext ===');
+    console.log('Input query:', query);
+    console.log('Previous context:', context);
+    
+    const groupMatch = query.match(/(?:\b\d+\s*(?:adult|child(?:ren)?|youth|teen(?:ager)?s?|year\s*old)s?\b)|(?:\b(?:we\s*(?:are|have)|there\s*are)\s+\d+\s*(?:adult|child(?:ren)?|youth|teen(?:ager)?s?)s?\b)|(?:\band\s+\d+\s*(?:adult|child(?:ren)?|youth|teen(?:ager)?s?)s?\b)|(?:plus\s+(?:one|1)\s+(?:\d+\s*(?:year\s*old|yo)|child|youth|teen(?:ager)?))/gi);
+    
+    console.log('Group match result:', groupMatch);
+    
+    const isGroupBooking = groupMatch !== null || context?.isGroupBooking;
+    console.log('Is group booking:', isGroupBooking);
+    
+    // Parse current query's group details
+    const newGroupDetails = isGroupBooking ? parseGroupDetails(query) : null;
+    console.log('New group details:', newGroupDetails);
+    
+    // Combine with existing group details if present
+    const groupDetails = newGroupDetails || context?.groupDetails;
+    if (newGroupDetails && context?.groupDetails) {
+        groupDetails.adults = (newGroupDetails.adults || 0) + (context.groupDetails.adults || 0);
+        groupDetails.youths = (newGroupDetails.youths || 0) + (context.groupDetails.youths || 0);
+        groupDetails.children = (newGroupDetails.children || 0) + (context.groupDetails.children || 0);
+    }
+    
+    console.log('Combined group details:', groupDetails);
     
     return {
         ...context,
         lastServiceType: serviceType || context?.lastServiceType || 'standard',
         isGroupBooking,
-        groupDetails: isGroupBooking ? (parseGroupDetails(query) || context.groupDetails) : null,
-        previousQuery: context.lastQuery,
+        groupDetails,
+        previousQuery: context?.lastQuery || null,
         lastQuery: query,
         queryType: detectQueryType(query),
-        // Add this timing context
         timing: {
             isTimingQuery: timingPatterns.duration.test(query) || 
                           timingPatterns.plus_service.test(query) || 
@@ -1049,6 +1092,7 @@ const enrichContext = (context, input) => {
     };
 };
 
+// Parse Group Details
 const parseGroupDetails = (query) => {
     const counts = {
         adults: 0,
@@ -1056,22 +1100,98 @@ const parseGroupDetails = (query) => {
         children: 0
     };
     
-    // Match patterns like "2 adults", "3 children", etc.
-    const matches = query.matchAll(/(\d+)\s*(adult|child|children|youth|teenager)s?/gi);
+    // First pass for explicit numbers
+    const matches = query.matchAll(/(\d+)\s*(?:adult|child(?:ren)?|youth|teen(?:ager)?s?|year\s*old)s?/gi);
     for (const match of matches) {
         const count = parseInt(match[1]);
-        const type = match[2].toLowerCase();
+        const type = match[0].toLowerCase();
         
-        if (type.startsWith('adult')) {
+        if (type.includes('adult')) {
             counts.adults += count;
-        } else if (type.startsWith('youth') || type.includes('teen')) {
+        } else if (type.includes('teen') || type.includes('youth')) {
             counts.youths += count;
-        } else if (type.startsWith('child')) {
-            counts.children += count;
+        } else if (type.includes('child') || type.includes('year old')) {
+            // Check age for children
+            const ageMatch = type.match(/(\d+)\s*year/);
+            if (ageMatch) {
+                const age = parseInt(ageMatch[1]);
+                // Use age ranges from flybusKnowledge.age_info
+                if (age >= 1 && age <= 5) {
+                    counts.children += 1;
+                } else if (age >= 6 && age <= 15) {
+                    counts.youths += 1;
+                } else if (age >= 16) {
+                    counts.adults += 1;
+                }
+            } else {
+                // If no age specified but "child" mentioned, assume young child
+                counts.children += count;
+            }
         }
     }
     
-    return counts;
+    // Handle "plus one" type phrases
+    const plusMatches = query.match(/plus\s+(?:one|1)\s+(?:(\d+)\s*(?:year\s*old|yo)|child|youth|teen(?:ager)?)/i);
+    if (plusMatches) {
+        if (plusMatches[1]) {
+            const age = parseInt(plusMatches[1]);
+            if (age >= 1 && age <= 5) {
+                counts.children += 1;
+            } else if (age >= 6 && age <= 15) {
+                counts.youths += 1;
+            } else {
+                counts.adults += 1;
+            }
+        } else if (plusMatches[0].includes('child')) {
+            counts.children += 1;
+        } else {
+            counts.youths += 1;
+        }
+    }
+    
+    // Log the parsed results
+    console.log('Parsed group details:', counts);
+    
+    return Object.values(counts).some(v => v > 0) ? counts : null;
+};
+
+// Add the helper function here, right after exports
+const createContextFields = (existingContext = {}, update = {}) => {
+    return {
+        // Meta fields
+        messages: existingContext?.messages || [],
+        language: existingContext?.language || 'en',
+        timestamp: Date.now(),
+        sessionId: update?.sessionId || existingContext?.sessionId || null,  // Prioritize update.sessionId
+        
+        // Core context fields
+        lastTopic: update?.lastTopic || existingContext?.lastTopic || null,
+        flightTime: update?.flightTime || existingContext?.flightTime || null,
+        flightDestination: update?.flightDestination || existingContext?.flightDestination || null,
+        lastServiceType: update?.lastServiceType || existingContext?.lastServiceType || null,
+        isGroupBooking: update?.isGroupBooking || existingContext?.isGroupBooking || false,
+        groupDetails: update?.groupDetails || existingContext?.groupDetails || null,
+        lastQuery: update?.lastQuery || existingContext?.lastQuery || null,
+        
+        // Optional fields that might be present
+        chatType: update?.chatType || existingContext?.chatType || null,
+        needsDestination: update?.needsDestination || existingContext?.needsDestination || false,
+        isArrival: update?.isArrival || existingContext?.isArrival || false,
+        isConfirmation: update?.isConfirmation || existingContext?.isConfirmation || false,
+        
+        // Conversation flow fields
+        previousTopic: update?.previousTopic || existingContext?.previousTopic || null,
+        queryType: update?.queryType || existingContext?.queryType || null,
+        
+        // Route and journey specific fields
+        routeType: update?.routeType || existingContext?.routeType || 'airport_to_bsi',
+        serviceDetails: update?.serviceDetails || existingContext?.serviceDetails || null,
+        journeyContext: {
+            isReturn: update?.journeyContext?.isReturn || existingContext?.journeyContext?.isReturn || false,
+            hasHotelService: update?.journeyContext?.hasHotelService || existingContext?.journeyContext?.hasHotelService || false,
+            timing: update?.journeyContext?.timing || existingContext?.journeyContext?.timing || null
+        }
+    };
 };
 
 // Add after enrichContext but before getRelevantKnowledge
@@ -1410,33 +1530,37 @@ const generateFlightResponse = (query, flightContext) => {
 
 // Knowledge retrieval function
 const getRelevantKnowledge = (query, context = {}) => {
-    query = query.toLowerCase();
+    query = query.toLowerCase().trim();  // Added trim() here
     
-    // Detect service type from query and context
+    const results = {
+        relevantInfo: [],
+        context: {},
+        confidence: 0
+    };
+
+    // Get serviceType and enrichedContext FIRST
     const serviceType = detectServiceType(query) || context?.lastServiceType || 'standard';
-    
-    // Enrich context with new information
     const enrichedContext = enrichContext(context, {
         message: query,
         serviceType: serviceType
     });
 
-    // Add the console log here
-    console.log('\n=== Query Type Detection ===');
-    console.log('Query:', query);
-    console.log('Query type:', detectQueryType(query));    
+    // Add console log for context
+    console.log('\n=== Initial Context ===');
     console.log('Service type:', serviceType);
-    
-    const results = {
-        relevantInfo: [],
-        context: enrichedContext,
-        confidence: 0
-    };
+    console.log('Enriched context:', enrichedContext);
 
-    // Check for casual chat patterns first
+    // Check for casual chat patterns first (before anything else)
+    console.log('\n=== Checking Casual Chat Patterns ===');
     for (const [chatType, data] of Object.entries(casualChatPatterns)) {
-        if (data.patterns.test(query)) {
-            let response = data.responses[Math.floor(Math.random() * data.responses.length)];
+        console.log(`Testing pattern for ${chatType}`);
+        console.log('Pattern:', data.patterns);
+        console.log('Query:', query);
+        console.log('Match result:', data.patterns.test(query));
+        
+        if (data.patterns.test(query)) {  // Removed trim() since we do it at start
+            console.log('Match found for:', chatType);
+            let response = data.responses[Math.floor(Math.random() * data.responses.length)];    
             
             // Handle name extraction for introductions
             if (chatType === 'introductions') {
@@ -1452,18 +1576,57 @@ const getRelevantKnowledge = (query, context = {}) => {
                 type: 'casual_chat',
                 chatType: chatType,
                 data: {
-                    response: response,
-                    shouldRedirect: true,
-                    context: context?.lastTopic ? {
-                        previousTopic: context.lastTopic,
-                        shouldResume: true
-                    } : null
+                    response: response
                 }
             });
+            results.context = {
+                lastTopic: 'casual_chat',
+                chatType: chatType
+            };
             results.confidence = 0.95;
             return results;
         }
     }
+
+    // Group booking detection
+    const groupMatch = query.match(/(?:\b\d+\s*(?:adult|child(?:ren)?|youth|teen(?:ager)?s?|year\s*old)s?\b)|(?:\b(?:we\s*(?:are|have)|there\s*are)\s+\d+\s*(?:adult|child(?:ren)?|youth|teen(?:ager)?s?)s?\b)|(?:\band\s+\d+\s*(?:adult|child(?:ren)?|youth|teen(?:ager)?s?)s?\b)|(?:plus\s+(?:one|1)\s+(?:\d+\s*(?:year\s*old|yo)|child|youth|teen(?:ager)?))/gi);
+
+    if (enrichedContext.isGroupBooking || groupMatch) {
+        console.log('\n=== Processing Group Booking ===');
+        const groupDetails = enrichedContext.groupDetails;
+        console.log('Group details:', groupDetails);
+
+        if (groupDetails) {
+            const isPlus = serviceType === 'plus' || query.includes('plus');
+            
+            results.relevantInfo.push({
+                type: 'pricing',
+                subtype: isPlus ? 'plus' : 'standard',
+                data: {
+                    pricing: flybusKnowledge.pricing[isPlus ? 'plus' : 'standard'],
+                    groupDetails: groupDetails,
+                    age_info: flybusKnowledge.age_info
+                }
+            });
+
+            results.context = {
+                ...enrichedContext,
+                lastTopic: 'pricing',
+                isGroupBooking: true
+            };
+
+            results.confidence = 0.95;
+            return results;
+        }
+    }
+
+    // Add the console log here
+    console.log('\n=== Query Type Detection ===');
+    console.log('Query:', query);
+    console.log('Query type:', detectQueryType(query));    
+    console.log('Service type:', serviceType);
+    
+    results.context = enrichedContext;
 
     // Add the comparison handler here, before any other checks
     const queryType = detectQueryType(query);
@@ -2072,24 +2235,22 @@ const getRelevantKnowledge = (query, context = {}) => {
                 break;
             case 'pricing':
                 if (enrichedContext.isGroupBooking) {
-                    const { adults, youths, children } = enrichedContext.groupDetails;
-                    const serviceType = enrichedContext.lastServiceType || 'standard';
+                    const isPlus = enrichedContext.lastServiceType === 'plus' || query.includes('plus');
                     const isReturnQuery = query.includes('return');
                     
-                    const groupPricing = calculateGroupPrice(adults, youths, children, serviceType, isReturnQuery);
                     results.relevantInfo.push({
-                        type: 'group_pricing',
-                        subtype: serviceType,
+                        type: 'pricing',
+                        subtype: isPlus ? 'plus' : 'standard',
                         data: {
-                            ...groupPricing,
-                            service_type: serviceType,
+                            pricing: flybusKnowledge.pricing[isPlus ? 'plus' : 'standard'],
+                            groupDetails: enrichedContext.groupDetails,
+                            age_info: flybusKnowledge.age_info,
                             ticket_type: isReturnQuery ? 'return' : 'oneway',
-                            warning: groupPricing.limits.youthExceeded ? 
-                                'Warning: Youth limit exceeded. Maximum 40 youth tickets per adult.' :
-                                groupPricing.limits.childrenExceeded ?
-                                'Warning: Children limit exceeded. Maximum 2 children per adult.' : null
-                        },
-                        features: flybusKnowledge.pricing.features
+                            limits: {
+                                youth_per_adult: flybusKnowledge.pricing.limits.youth_per_adult,
+                                children_per_adult: flybusKnowledge.pricing.limits.children_per_adult
+                            }
+                        }
                     });
                 } else {
                     results.relevantInfo.push({
@@ -2139,45 +2300,6 @@ const getRelevantKnowledge = (query, context = {}) => {
     }
 
     return results;
-};
-
-// Add the helper function here, right after exports
-const createContextFields = (existingContext = {}, update = {}) => {
-    return {
-        // Meta fields
-        messages: existingContext?.messages || [],
-        language: existingContext?.language || 'en',
-        timestamp: Date.now(),
-        sessionId: existingContext?.sessionId || null,
-        
-        // Core context fields
-        lastTopic: update?.lastTopic || existingContext?.lastTopic || null,
-        flightTime: update?.flightTime || existingContext?.flightTime || null,
-        flightDestination: update?.flightDestination || existingContext?.flightDestination || null,
-        lastServiceType: update?.lastServiceType || existingContext?.lastServiceType || null,
-        isGroupBooking: update?.isGroupBooking || existingContext?.isGroupBooking || false,
-        groupDetails: update?.groupDetails || existingContext?.groupDetails || null,
-        lastQuery: update?.lastQuery || existingContext?.lastQuery || null,
-        
-        // Optional fields that might be present
-        chatType: update?.chatType || existingContext?.chatType || null,
-        needsDestination: update?.needsDestination || existingContext?.needsDestination || false,
-        isArrival: update?.isArrival || existingContext?.isArrival || false,
-        isConfirmation: update?.isConfirmation || existingContext?.isConfirmation || false,
-        
-        // Conversation flow fields
-        previousTopic: update?.previousTopic || existingContext?.previousTopic || null,
-        queryType: update?.queryType || existingContext?.queryType || null,
-        
-        // Route and journey specific fields
-        routeType: update?.routeType || existingContext?.routeType || 'airport_to_bsi',
-        serviceDetails: update?.serviceDetails || existingContext?.serviceDetails || null,
-        journeyContext: {
-            isReturn: update?.journeyContext?.isReturn || existingContext?.journeyContext?.isReturn || false,
-            hasHotelService: update?.journeyContext?.hasHotelService || existingContext?.journeyContext?.hasHotelService || false,
-            timing: update?.journeyContext?.timing || existingContext?.journeyContext?.timing || null
-        }
-    };
 };
 
 // Export everything together
