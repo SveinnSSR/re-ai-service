@@ -780,18 +780,34 @@ app.post('/chat', verifyApiKey, async (req, res) => {
                 Respond in ${isIcelandic ? 'Icelandic' : 'English'}. 
                 Use only the information provided in the knowledge base.
                 Remember to use "our" when referring to services.
-                Structure all responses in exactly two paragraphs with a line break between them:
-                - First paragraph: Core information (location, timing, price, or main point)
-                - Second paragraph: Supporting details and next steps
+
+                CRITICAL: Structure requirements
+                1. MUST have exactly TWO paragraphs separated by a line break
+                2. First paragraph:
+                   - Core information only (location, bus stop, timing, price)
+                   - Keep to 2-3 sentences maximum
+                   - End with maps URL if location involved
+                   - Format: "[Content]. View location: [maps_url] 📍"
+                3. Second paragraph:
+                   - Only supporting details (waiting times, contact info, next steps)
+                   - Keep to 2-3 sentences maximum
+                   - Never combine with first paragraph
+                4. Never create more than two paragraphs
+
                 ${knowledgeBaseResults.relevantInfo[0].type !== 'casual_chat' ? 
-                    'Include specific location information immediately when available.\n                Always mention bus stop numbers and names in first response.\n                Always include maps URL when available.\n                Format any maps links as "View location on Google Maps 📍"' : 
+                    'Location Requirements:\n                - Include specific location details in first paragraph only\n                - Always include bus stop number AND name\n                - Maps URL must be at end of first paragraph\n                - Format: View location: [maps_url] 📍' : 
                     ''}
                 ${knowledgeBaseResults.relevantInfo[0].type === 'route' ? 
                     'When mentioning journey times, always specify the base journey time and any additional service time separately.' : 
                     ''}
                 ${knowledgeBaseResults.relevantInfo[0]?.data?.duration?.total_time ? 
                     `Total journey time: ${knowledgeBaseResults.relevantInfo[0].data.duration.total_time}` : 
-                    ''}`;
+                    ''}
+                
+                Example format:
+                "For pickup from [hotel], please go to bus stop X (Name). Due to traffic regulations, our buses use designated stops. View location: [maps_url] 📍
+
+                Please be ready 30 minutes before departure. If bus hasn't arrived after 20-25 minutes, call +354 599 0000. [Additional info if needed]."`;
 
             // Add context-specific guidance
             const contextPrompt = context.lastTopic ? 
