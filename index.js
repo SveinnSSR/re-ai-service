@@ -760,7 +760,9 @@ app.post('/chat', verifyApiKey, async (req, res) => {
                 Respond in ${isIcelandic ? 'Icelandic' : 'English'}. 
                 Use only the information provided in the knowledge base.
                 Remember to use "our" when referring to services.
-                Structure all responses in exactly two paragraphs with a line break between them.
+                Structure all responses in exactly two paragraphs with a line break between them:
+                - First paragraph: Core information (location, timing, price, or main point)
+                - Second paragraph: Supporting details and next steps
                 ${knowledgeBaseResults.relevantInfo[0].type !== 'casual_chat' ? 
                     'Include specific location information immediately when available.\n                Always mention bus stop numbers and names in first response.\n                Always include maps URL when available.\n                Format any maps links as "View location on Google Maps 📍"' : 
                     ''}
