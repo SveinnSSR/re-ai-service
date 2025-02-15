@@ -127,6 +127,18 @@ const SYSTEM_PROMPTS = {
     
     Please be ready 30 minutes before departure. If the bus hasn't arrived within 20-25 minutes of your pickup window, contact us at +354 599 0000 for assistance."`,
 
+    structure_format: `When responding, ALWAYS structure the information in exactly two paragraphs:
+
+    First paragraph:
+    - Use information from mainInfo sections only
+    - Include core_message and key features
+    - End with maps URL if provided
+
+    Second paragraph:
+    - Use information from supportingInfo sections only
+    - Include timing, contact details, and additional information
+    - Must be separated by blank line from first paragraph`,
+
     casual_chat: `When handling casual conversation:
         - Maintain warm, professional tone
         - Keep responses in two paragraphs
@@ -849,7 +861,9 @@ app.post('/chat', verifyApiKey, async (req, res) => {
                 {
                     role: "system",
                     content: `${basePrompt}
-                         ${contextPrompt}`
+                         ${contextPrompt}
+                         
+                         ${SYSTEM_PROMPTS.structure_format}`
                 },
                 {
                     role: "user",

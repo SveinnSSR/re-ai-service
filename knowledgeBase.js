@@ -183,6 +183,33 @@ const flybusKnowledge = {
         }
     },
     pricing: {
+        mainInfo: {
+            core_message: {
+                standard: "Our standard Flybus service offers direct transfer between Keflavík Airport and BSÍ Bus Terminal.",
+                plus: "Flybus+ provides complete service including hotel pickup and dropoff in Reykjavík."
+            },
+            quick_rates: {
+                standard: {
+                    adult_oneway: 3999,
+                    adult_return: 7299,
+                    savings: 699
+                },
+                plus: {
+                    adult_oneway: 5199,
+                    adult_return: 9399,
+                    savings: 999
+                }
+            }
+        },
+        supportingInfo: {
+            age_categories: {
+                adult: "Ages 16-99 years",
+                youth: "Ages 6-15 years at reduced rate",
+                children: "Ages 1-5 years travel free"
+            },
+            booking_notes: "Free cancellation available and no booking fees. Return tickets include savings.",
+            group_limits: "Maximum 40 youth per adult and 2 children per adult."
+        },
         standard: {
             name: "Flybus",
             description: "Direct service to/from BSÍ Bus Terminal",
@@ -190,21 +217,21 @@ const flybusKnowledge = {
                 adult: {
                     price: 3999,
                     currency: "ISK",
-                    age_range: "16-99 years",  // Update this
+                    age_range: "16-99 years",
                     oneway: {
                         price: 3999,
                         currency: "ISK"
                     },
                     return: {
-                        price: 7299,  // Fix this from 7998
+                        price: 7299,
                         currency: "ISK",
-                        savings: 699  // Add this
+                        savings: 699
                     }
                 },
                 youth: {
                     price: 2000,
                     currency: "ISK",
-                    age_range: "6-15 years",   // Update this
+                    age_range: "6-15 years",
                     oneway: {
                         price: 2000,
                         currency: "ISK"
@@ -217,7 +244,7 @@ const flybusKnowledge = {
                 children: {
                     price: 0,
                     currency: "ISK",
-                    age_range: "1-5 years",    // Update this
+                    age_range: "1-5 years",
                     oneway: {
                         price: 0,
                         currency: "ISK"
@@ -236,7 +263,7 @@ const flybusKnowledge = {
                 adult: {
                     price: 5199,
                     currency: "ISK",
-                    age_range: "16-99 years",  // Update this
+                    age_range: "16-99 years",
                     oneway: {
                         price: 5199,
                         currency: "ISK"
@@ -250,7 +277,7 @@ const flybusKnowledge = {
                 youth: {
                     price: 2600,
                     currency: "ISK",
-                    age_range: "6-15 years",   // Update this
+                    age_range: "6-15 years",
                     oneway: {
                         price: 2600,
                         currency: "ISK"
@@ -263,7 +290,7 @@ const flybusKnowledge = {
                 children: {
                     price: 0,
                     currency: "ISK",
-                    age_range: "1-5 years",    // Update this
+                    age_range: "1-5 years",
                     oneway: {
                         price: 0,
                         currency: "ISK"
@@ -1830,10 +1857,18 @@ const getRelevantKnowledge = (query, context = {}) => {
             results.relevantInfo.push({
                 type: 'hotel_location',
                 data: {
-                    hotel: directPickupHotel.name,
-                    pickup_type: 'direct_doorstep',
+                    mainInfo: {
+                        hotel: directPickupHotel.name,
+                        pickup_type: 'direct_doorstep',
+                        core_message: `Your pickup for the Flybus service will be directly outside the ${directPickupHotel.name}.`,
+                        service_note: "This hotel benefits from our direct doorstep pickup service."
+                    },
+                    supportingInfo: {
+                        readiness: "Please be ready outside the hotel entrance 30 minutes before your scheduled departure time.",
+                        window: "Make sure to be visible and prepared to board during the 30-minute window.",
+                        contact: "If the bus has not arrived within 20-25 minutes of the pickup window, please contact us at +354 599 0000 for immediate assistance."
+                    },
                     area: directPickupHotel.area,
-                    pickup_instructions: "Direct doorstep pickup service available - please be ready outside the hotel entrance 30 minutes before your scheduled departure time.",
                     timing_rules: flybusKnowledge.locations.general_info.timing_rules,
                     isDoorstep: true,
                     skipMapsUrl: true
@@ -1842,7 +1877,7 @@ const getRelevantKnowledge = (query, context = {}) => {
             results.confidence = 0.95;
             return results;
         }
-
+        
         // Add location restrictions check
         const isRestrictionQuery = query.match(/\b(restriction|limited|cannot|area|access)\b/i);
         if (isRestrictionQuery) {
