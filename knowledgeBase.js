@@ -2524,17 +2524,27 @@ const getRelevantKnowledge = (query, context = {}) => {
 
         // Check for destination in current message
         for (const [region, cities] of Object.entries(destinations)) {
-            if (cities.some(city => query.toLowerCase().includes(city.toLowerCase()))) {
+            const foundCity = cities.find(city => 
+                query.toLowerCase().includes(city.toLowerCase())
+            );
+            
+            if (foundCity) {
                 if (context?.flightTime) {
+                    const cityName = foundCity === 'european' ? 'Europe' : 
+                                   foundCity === 'us' ? 'the US' :
+                                   foundCity === 'usa' ? 'the USA' :
+                                   foundCity.charAt(0).toUpperCase() + foundCity.slice(1);
+                    
                     const flightResponse = generateFlightResponse(
-                        `flight to ${region} at ${context.flightTime}`,
+                        `flight to ${cityName} at ${context.flightTime}`,
                         { ...context, flightDestination: region }
                     );
                     results.relevantInfo.push(flightResponse);
                     results.context = {
                         ...context,
                         lastTopic: 'flight_timing',
-                        flightDestination: region
+                        flightDestination: region,
+                        destinationCity: cityName
                     };
                     results.confidence = 0.95;
                     return results;
