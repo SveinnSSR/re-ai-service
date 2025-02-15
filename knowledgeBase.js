@@ -9,17 +9,28 @@ const flybusKnowledge = {
                 description: "Direct airport transfer service between Keflavík Airport and BSÍ Bus Terminal in Reykjavík",
                 oneway_price: 3999,
                 return_price: 7299,
-                return_savings: 699  // Add this
+                return_savings: 699
             },
             plus: {
                 name: ["Flybus+", "Flybus Plus", "Flybus PLUS"],
                 description: "Extended service including hotel pickup/dropoff in Reykjavík area",
                 oneway_price: 5199,
                 return_price: 9399,
-                return_savings: 999  // Add this
+                return_savings: 999
             }
         },
-        service_description: "Direct airport transfer service between Keflavík Airport and Reykjavík",
+        mainInfo: {
+            core_message: "The Flybus operates direct transfers between Keflavík Airport and Reykjavík, with service guaranteed for every flight. Our carbon-neutral coaches offer comfortable travel with free WiFi onboard.",
+            service_options: {
+                standard: "Direct service to BSÍ Bus Terminal",
+                plus: "Extended service with hotel pickup/dropoff"
+            }
+        },
+        supportingInfo: {
+            journey_details: "The journey takes 45 minutes to BSÍ Bus Terminal, with Flybus+ service requiring an additional 30 minutes for hotel transfers.",
+            guarantees: "We guarantee seats for all passengers and wait for delayed flights, ensuring stress-free travel to and from the airport.",
+            booking_note: "Tickets can be booked online to skip the lines, with free cancellation according to our policy."
+        },
         service_guarantees: [
             "Seats always guaranteed",
             "Service for every arriving and departing flight",
