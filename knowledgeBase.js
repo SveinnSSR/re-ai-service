@@ -2609,7 +2609,7 @@ const getRelevantKnowledge = (query, context = {}) => {
             data: {
                 mainInfo: {
                     core_prices: {
-                        base_price: flybusKnowledge.pricing[serviceType].quick_rates[serviceType].adult_oneway,
+                        base_price: flybusKnowledge.pricing.mainInfo.quick_rates[serviceType].adult_oneway,
                         service_type: flybusKnowledge.pricing.mainInfo.core_message[serviceType],
                         youth_rate: isYouthQuery ? flybusKnowledge.pricing[serviceType].rates.youth.price : null,
                         child_policy: isChildQuery ? flybusKnowledge.pricing.supportingInfo.age_categories.children : null
@@ -2618,8 +2618,8 @@ const getRelevantKnowledge = (query, context = {}) => {
                 supportingInfo: {
                     booking_info: flybusKnowledge.pricing.supportingInfo.booking_notes,
                     return_option: isReturnQuery ? {
-                        price: flybusKnowledge.pricing[serviceType].quick_rates[serviceType].adult_return,
-                        savings: flybusKnowledge.pricing[serviceType].quick_rates[serviceType].savings
+                        price: flybusKnowledge.pricing.mainInfo.quick_rates[serviceType].adult_return,
+                        savings: flybusKnowledge.pricing.mainInfo.quick_rates[serviceType].savings
                     } : null,
                     age_categories: (!isYouthQuery && !isChildQuery) ? {
                         youth: flybusKnowledge.pricing.supportingInfo.age_categories.youth,
