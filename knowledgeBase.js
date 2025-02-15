@@ -199,6 +199,17 @@ const flybusKnowledge = {
                 }
             }
         },
+        hotel_transfers: {
+            mainInfo: {
+                core_message: "Hotel transfers require vehicle change at BSÍ Terminal",
+                process: "Transfer to smaller buses for hotel service"
+            },
+            supportingInfo: {
+                timing: "Additional 30 minutes for hotel service",
+                instructions: "Follow driver instructions for transfer",
+                notes: "Service operates with smaller vehicles in city center"
+            }
+        },
         purchase_options: {
             recommended: {
                 method: "Online booking",
@@ -2595,21 +2606,32 @@ const getRelevantKnowledge = (query, context = {}) => {
         const pricingData = {
             type: 'pricing',
             subtype: serviceType,
-            data: flybusKnowledge.pricing[serviceType],
-            ticket_type: isReturnQuery ? 'return' : 'oneway',
-            features: flybusKnowledge.pricing.features,
-            limits: flybusKnowledge.pricing.limits
+            data: {
+                mainInfo: {
+                    core_prices: {
+                        base_price: flybusKnowledge.pricing[serviceType].quick_rates[serviceType].adult_oneway,
+                        service_type: flybusKnowledge.pricing.mainInfo.core_message[serviceType],
+                        youth_rate: isYouthQuery ? flybusKnowledge.pricing[serviceType].rates.youth.price : null,
+                        child_policy: isChildQuery ? flybusKnowledge.pricing.supportingInfo.age_categories.children : null
+                    }
+                },
+                supportingInfo: {
+                    booking_info: flybusKnowledge.pricing.supportingInfo.booking_notes,
+                    return_option: isReturnQuery ? {
+                        price: flybusKnowledge.pricing[serviceType].quick_rates[serviceType].adult_return,
+                        savings: flybusKnowledge.pricing[serviceType].quick_rates[serviceType].savings
+                    } : null,
+                    age_categories: (!isYouthQuery && !isChildQuery) ? {
+                        youth: flybusKnowledge.pricing.supportingInfo.age_categories.youth,
+                        children: flybusKnowledge.pricing.supportingInfo.age_categories.children
+                    } : null,
+                    contact: "+354 599 0000"
+                }
+            }
         };
 
-        // Add specific age category info if requested
-        if (isYouthQuery) {
-            pricingData.highlighted_category = 'youth';
-        } else if (isChildQuery) {
-            pricingData.highlighted_category = 'children';
-        }
-
         results.relevantInfo.push(pricingData);
-        results.confidence = 0.9;
+        results.confidence = 0.95;
     }
 
     // Luggage related queries
