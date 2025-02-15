@@ -31,7 +31,24 @@ const flybusKnowledge = {
             service_options: {  // KEEP
                 standard: "Direct service to BSÍ Bus Terminal",
                 plus: "Extended service with hotel pickup/dropoff"
-            }
+            },
+            service_guarantees: {  // NEW SECTION
+                seats: {
+                    guaranteed: true,
+                    description: "Seats are always guaranteed for all airport passengers",
+                    details: "The Flybus is not booked by seat numbers, and seats are always available due to our flexible scheduling system"
+                },
+                flight_connection: {
+                    guaranteed: true,
+                    description: "Service guaranteed for all flights, including delayed and late night arrivals"
+                },
+                operating_schedule: {  // NEW ADDITION
+                    year_round: true,
+                    description: "Service operates all year round, including holidays and late night hours",
+                    details: "The Flybus is scheduled to/from the airport in connection with every flight throughout the year",
+                    availability: "Service available for all arriving and departing flights, no matter the season or time"
+                }
+            },
         },
         supportingInfo: {  // ENHANCE
             journey_details: "The journey takes 45 minutes to BSÍ Bus Terminal, with Flybus+ service requiring an additional 30 minutes for hotel transfers.",
@@ -109,10 +126,21 @@ const flybusKnowledge = {
             procedure: "Submit request via email or phone",
             documentation: "Booking number required"
         },
-        cancellation: {
-            policy: "Free cancellation according to policy",
-            timing: "Notify before scheduled departure",
-            method: "Email or call customer service"
+        cancellation: {  // ENHANCE THIS SECTION
+            mainInfo: {
+                core_message: "Free cancellation available according to our policy",
+                how_to: "Send cancellation request to info@icelandia.is or call +354 599 0000",
+                requirements: "Include your booking number in all communications"
+            },
+            supportingInfo: {
+                department_hours: "Refund department open weekdays 09:00-17:00 GMT",
+                processing_time: "Refund requests typically reviewed within 2 weeks",
+                contact: {
+                    email: "info@icelandia.is",
+                    phone: "+354 599 0000",
+                    urgent: "+354 580 5400"
+                }
+            }
         },
         keywords: [
             "ticket", "booking", "cancel", "refund", "change", 
@@ -322,8 +350,11 @@ const flybusKnowledge = {
         special_cases: {
             infants: {
                 range: "Under 1 year",
-                policy: "Cannot be accommodated due to safety requirements",
-                reason: "Require 3-point seat belts not available on buses"
+                policy: "Cannot be accommodated on Flybus",
+                reason: "Safety requirements - 3-point seat belts needed",
+                details: "Due to Icelandic law and safety regulations, babies under 1 year old cannot travel on Flybus as they require 3-point seat belts which are not available on our buses",
+                alternatives: "Please contact us for alternative transportation options",
+                contact: "+354 599 0000"
             },
             child_seats: {
                 availability: "Available for children 1-3 years",
@@ -493,6 +524,20 @@ const flybusKnowledge = {
             core_message: {
                 airport_arrivals: "Flybus meets every arriving flight at Keflavík Airport",
                 city_departures: "Regular departures from BSÍ Terminal to Keflavík Airport throughout the day"
+            },
+            daily_schedule: {  // ADD THIS NEW SECTION
+                first_bus: {
+                    pickup: "03:00",
+                    departure: "03:30",
+                    arrival: "04:15",
+                    notes: "First bus from BSÍ to Keflavík Airport"
+                },
+                last_bus: {
+                    pickup: "22:00",
+                    departure: "22:30",
+                    arrival: "23:15",
+                    notes: "Last bus from BSÍ to Keflavík Airport"
+                }
             },
             key_features: [
                 "Service for all flights, including late night arrivals",
@@ -1312,12 +1357,44 @@ const detectQueryType = (query) => {
         return 'flight_schedule';
     }
 
+    // Enhanced destination detection
+    if (query.match(/\b(to|for|going to)\s+([a-z\s]+)$/i)) {
+        return 'flight_destination';
+    }    
+
     // Add pickup timing queries here
     if (query.match(/\b(pick.?up|when.*ready|waiting.*time|pickup.*time)\b/i) ||
         query.match(/\b(when|what time).*bus.*arrive\b/i) ||
         query.match(/\b(how long.*wait|waiting period)\b/i)) {
         return 'pickup_timing';
-    }    
+    }
+    
+    // Seat guarantee queries
+    if (query.match(/\b(guarantee|guaranteed|seat|seats|available)\b/i) && 
+        (query.includes('seat') || query.includes('seats'))) {
+        results.relevantInfo.push({
+            type: 'service_info',
+            data: {
+                mainInfo: flybusKnowledge.basic_info.mainInfo,
+                service_guarantees: flybusKnowledge.basic_info.mainInfo.service_guarantees,
+                confidence: 0.95
+            }
+        });
+        return results;
+    }
+
+    // Operating schedule queries
+    if (query.match(/\b(year round|all year|operating hours|when.*operate|run.*all year|open.*all year)\b/i)) {
+        results.relevantInfo.push({
+            type: 'service_info',
+            data: {
+                mainInfo: flybusKnowledge.basic_info.mainInfo,
+                operating_info: flybusKnowledge.basic_info.mainInfo.service_guarantees.operating_schedule,
+                confidence: 0.95
+            }
+        });
+        return results;
+    }
     
     // Service information queries
     if (query.match(/\b(what|which).+?(include|come|get|offer)\b/i) ||
@@ -2105,6 +2182,29 @@ const getRelevantKnowledge = (query, context = {}) => {
         query.includes('midnight') || query.includes('late night') ||
         query.match(/\b(valid|policy|policies)\b/i)) {
         
+        // Special handling for cancellation queries
+        if (query.match(/\b(cancel|cancellation|refund)\b/i) || 
+            (query.includes('booking') && query.match(/\b(change|modify)\b/i))) {
+            results.relevantInfo.push({
+                type: 'policies',
+                data: {
+                    mainInfo: {
+                        core_message: flybusKnowledge.policies_and_procedures.cancellation.mainInfo.core_message,
+                        how_to: flybusKnowledge.policies_and_procedures.cancellation.mainInfo.how_to,
+                        requirements: flybusKnowledge.policies_and_procedures.cancellation.mainInfo.requirements
+                    },
+                    supportingInfo: {
+                        contact: flybusKnowledge.policies_and_procedures.cancellation.supportingInfo.contact,
+                        processing: flybusKnowledge.policies_and_procedures.cancellation.supportingInfo.processing_time,
+                        hours: flybusKnowledge.policies_and_procedures.cancellation.supportingInfo.department_hours
+                    }
+                }
+            });
+            results.confidence = 0.95;
+            return results;
+        }
+        
+        // Handle other policy queries
         results.relevantInfo.push({
             type: 'policies',
             data: {
@@ -2364,6 +2464,30 @@ const getRelevantKnowledge = (query, context = {}) => {
         }
     }
 
+    // First/Last bus queries
+    if (query.match(/\b(first|earliest|last|latest)\s+(bus|flybus|departure|time)\b/i)) {
+        const isFirstBus = query.match(/\b(first|earliest)\b/i);
+        results.relevantInfo.push({
+            type: 'schedule',
+            data: {
+                mainInfo: {
+                    core_message: isFirstBus ? 
+                        `The first Flybus departs BSÍ at ${flybusKnowledge.schedules.mainInfo.daily_schedule.first_bus.departure}` :
+                        `The last Flybus departs BSÍ at ${flybusKnowledge.schedules.mainInfo.daily_schedule.last_bus.departure}`,
+                    schedule_details: isFirstBus ? 
+                        flybusKnowledge.schedules.mainInfo.daily_schedule.first_bus :
+                        flybusKnowledge.schedules.mainInfo.daily_schedule.last_bus
+                },
+                supportingInfo: {
+                    pickup_note: "Pickup service starts 30 minutes before departure time",
+                    contact: "+354 599 0000"
+                }
+            }
+        });
+        results.confidence = 0.95;
+        return results;
+    }
+
     // Schedule and timing queries
     if (query.includes('schedule') || query.includes('time') || query.includes('when') || 
         query.includes('depart') || query.includes('arrival') || query.includes('late') ||
@@ -2468,6 +2592,28 @@ const getRelevantKnowledge = (query, context = {}) => {
         }
         
         return getRelevantKnowledge(enhancedQuery, enhancedContext);
+    }
+
+    // Age and pricing queries
+    if (query.match(/\b(infant|baby|babies|child|children|youth|young|age|old)\b/i)) {
+        // Special handling for infant queries
+        if (query.match(/\b(infant|baby|babies)\b/i)) {
+            results.relevantInfo.push({
+                type: 'age_info',
+                data: {
+                    mainInfo: {
+                        core_message: flybusKnowledge.age_info.special_cases.infants.policy,
+                        details: flybusKnowledge.age_info.special_cases.infants.details
+                    },
+                    supportingInfo: {
+                        reason: flybusKnowledge.age_info.special_cases.infants.reason,
+                        contact: flybusKnowledge.age_info.special_cases.infants.contact
+                    }
+                },
+                confidence: 0.95
+            });
+            return results;
+        }
     }
 
     // Price and booking queries

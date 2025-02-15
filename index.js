@@ -815,6 +815,8 @@ app.post('/chat', verifyApiKey, async (req, res) => {
                 systemPrompt = SYSTEM_PROMPTS.acknowledgment;
             } else if (knowledgeBaseResults.queryType === 'flight_schedule') {
                 systemPrompt = SYSTEM_PROMPTS.schedule;
+            } else if (knowledgeBaseResults.queryType === 'flight_destination' && context?.flightTime) {
+                systemPrompt = SYSTEM_PROMPTS.flight_timing;
             } else if (knowledgeBaseResults.queryType === 'recommendation') {
                 systemPrompt = SYSTEM_PROMPTS.recommendation;
             } else if (knowledgeBaseResults.queryType === 'pickup_timing') {
