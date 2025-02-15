@@ -1823,7 +1823,8 @@ const getRelevantKnowledge = (query, context = {}) => {
                     pickup_type: 'direct_doorstep',
                     area: directPickupHotel.area,
                     pickup_instructions: "Direct doorstep pickup service available - please be ready outside the hotel entrance 30 minutes before your scheduled departure time.",
-                    timing_rules: flybusKnowledge.locations.general_info.timing_rules
+                    timing_rules: flybusKnowledge.locations.general_info.timing_rules,
+                    isDoorstep: true  // Add flag to help identify in response
                 }
             });
             results.confidence = 0.95;
@@ -1837,6 +1838,33 @@ const getRelevantKnowledge = (query, context = {}) => {
                 type: 'location_restrictions',
                 data: {
                     restrictions: flybusKnowledge.locations.general_info.restrictions,
+                    timing_rules: flybusKnowledge.locations.general_info.timing_rules
+                }
+            });
+            results.confidence = 0.95;
+            return results;
+        }
+
+        // Add landmark matching
+        const landmarkMatches = {
+            'hallgrimskirkja': ['hallgrimskirkja', 'hallgrímskirkja', 'hallgríms', 'church']
+        };
+
+        // Force direct match for Hallgrímskirkja
+        if (Object.values(landmarkMatches.hallgrimskirkja).some(v => 
+            query.toLowerCase().includes(v))) {
+            // Force it to use bus stop 8 data
+            const hallgrimskirkjaStop = flybusKnowledge.locations.bus_stops["8"];
+            results.relevantInfo.push({
+                type: 'bus_stop',
+                data: {
+                    number: "8",
+                    name: hallgrimskirkjaStop.name,
+                    location: hallgrimskirkjaStop.location_info,
+                    serviced_hotels: hallgrimskirkjaStop.serviced_hotels,
+                    area: hallgrimskirkjaStop.location_info.area,
+                    maps_url: hallgrimskirkjaStop.location_info.maps_url,
+                    pickup_instructions: `Please wait at bus stop 8 (${hallgrimskirkjaStop.name}) 30 minutes before your scheduled departure time.`,
                     timing_rules: flybusKnowledge.locations.general_info.timing_rules
                 }
             });
@@ -1870,42 +1898,6 @@ const getRelevantKnowledge = (query, context = {}) => {
                 });
                 results.confidence = 0.95;
                 return results;
-            }
-        }
-
-        // Add landmark matching
-        const landmarkMatches = {
-            'hallgrimskirkja': ['hallgrimskirkja', 'hallgrímskirkja', 'hallgríms', 'church']
-        };
-
-        // Check for landmarks and match to correct bus stop
-        for (const [landmark, variations] of Object.entries(landmarkMatches)) {
-            if (variations.some(v => query.toLowerCase().includes(v))) {
-                // Find bus stop for landmark
-                for (const [stopNum, stop] of Object.entries(flybusKnowledge.locations.bus_stops)) {
-                    if (stop.name.toLowerCase().includes(landmark)) {
-                        const coords = stop.location_info.coordinates;
-                        const mapsUrl = `https://www.google.com/maps/@${coords.lat},${coords.lng},18z`;
-                        
-                        results.relevantInfo.push({
-                            type: 'bus_stop',
-                            data: {
-                                number: stopNum,
-                                name: stop.name,
-                                location: {
-                                    ...stop.location_info,
-                                    maps_url: mapsUrl
-                                },
-                                serviced_hotels: stop.serviced_hotels,
-                                area: stop.location_info.area,
-                                pickup_instructions: `Please wait at bus stop ${stopNum} (${stop.name}) 30 minutes before your scheduled departure time.`,
-                                timing_rules: flybusKnowledge.locations.general_info.timing_rules
-                            }
-                        });
-                        results.confidence = 0.95;
-                        return results;
-                    }
-                }
             }
         }
 

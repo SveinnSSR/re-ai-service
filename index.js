@@ -878,7 +878,33 @@ app.post('/chat', verifyApiKey, async (req, res) => {
             });
             console.log('OpenAI Response Received');
 
-            const response = completion.choices[0].message.content;
+            let response = completion.choices[0].message.content;    // Changed from const to let for allowing trimming logic
+
+            // Add trimming logic here with logging
+            console.log('\n=== Processing Response Format ===');
+            console.log('Original response length:', response.length);
+            console.log('Original paragraphs:', response.split('\n\n').length);
+
+            // Split into paragraphs and clean empty ones
+            const paragraphs = response.split('\n\n').filter(p => p.trim());
+            
+            // Enforce two-paragraph structure
+            if (paragraphs.length > 2) {
+                console.log('Trimming response to two paragraphs');
+                response = paragraphs.slice(0, 2).join('\n\n');
+            } else if (paragraphs.length === 1) {
+                // If only one paragraph, try to split on period + space
+                console.log('Single paragraph detected, attempting to split');
+                const sentences = paragraphs[0].split('. ');
+                if (sentences.length > 2) {
+                    const firstHalf = sentences.slice(0, Math.ceil(sentences.length/2)).join('. ') + '.';
+                    const secondHalf = sentences.slice(Math.ceil(sentences.length/2)).join('. ');
+                    response = `${firstHalf}\n\n${secondHalf}`;
+                }
+            }
+
+            console.log('Final response length:', response.length);
+            console.log('Final paragraphs:', response.split('\n\n').length);
 
             // Update messages with timestamps
             context.messages.push({
