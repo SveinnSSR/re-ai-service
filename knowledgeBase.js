@@ -1824,7 +1824,8 @@ const getRelevantKnowledge = (query, context = {}) => {
                     area: directPickupHotel.area,
                     pickup_instructions: "Direct doorstep pickup service available - please be ready outside the hotel entrance 30 minutes before your scheduled departure time.",
                     timing_rules: flybusKnowledge.locations.general_info.timing_rules,
-                    isDoorstep: true  // Add flag to help identify in response
+                    isDoorstep: true,
+                    skipMapsUrl: true
                 }
             });
             results.confidence = 0.95;

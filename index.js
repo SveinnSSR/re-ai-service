@@ -57,16 +57,19 @@ const SYSTEM_PROMPTS = {
     1. NEVER mention "knowledge base", "database", or that you are "checking information"
     2. ALWAYS structure responses in exactly TWO paragraphs separated by a blank line:
        
-       First paragraph:
+       First paragraph rules:
        - Core information first (location, timing, price, or main point)
-       - End with maps URL for locations
+       - For bus stop pickup ONLY: end with "View location: [maps_url] 📍"
+       - For direct doorstep pickup: DO NOT include maps URL
        - Maximum 3 sentences
-       - Format: "[Content]. View location: [maps_url] 📍"
+       - Format for bus stops: "Your pickup point is at [bus stop]. View location: [maps_url] 📍"
+       - Format for doorstep: "[Hotel name] offers direct doorstep pickup service"
        
-       Second paragraph:
+       Second paragraph rules:
        - Supporting details only (timing, contact, next steps)
        - Must start on new line after blank line
        - Maximum 3 sentences
+       - Always include timing and contact information
     
     BUS STOP LOCATIONS:
     1. Ráðhúsið (City Hall): View location: https://www.google.com/maps/@64.146316,-21.941491,18z 📍
@@ -880,31 +883,66 @@ app.post('/chat', verifyApiKey, async (req, res) => {
 
             let response = completion.choices[0].message.content;    // Changed from const to let for allowing trimming logic
 
-            // Add trimming logic here with logging
+            // Add enhanced trimming logic
             console.log('\n=== Processing Response Format ===');
-            console.log('Original response length:', response.length);
-            console.log('Original paragraphs:', response.split('\n\n').length);
+            console.log('Original response:', response);
 
-            // Split into paragraphs and clean empty ones
-            const paragraphs = response.split('\n\n').filter(p => p.trim());
+            // First clean up any excessive newlines and spaces
+            response = response.replace(/\n{3,}/g, '\n\n')
+                             .replace(/[ ]{2,}/g, ' ')
+                             .trim();
+
+            // Check if this is a direct pickup response
+            const isDoorstepPickup = knowledgeBaseResults.relevantInfo.some(info => 
+                info.data?.isDoorstep || info.data?.pickup_type === 'direct_doorstep'
+            );
+
+            // Split and enforce strict two-paragraph structure
+            let paragraphs = response.split(/\n\n+/);
             
-            // Enforce two-paragraph structure
-            if (paragraphs.length > 2) {
-                console.log('Trimming response to two paragraphs');
-                response = paragraphs.slice(0, 2).join('\n\n');
-            } else if (paragraphs.length === 1) {
-                // If only one paragraph, try to split on period + space
-                console.log('Single paragraph detected, attempting to split');
-                const sentences = paragraphs[0].split('. ');
-                if (sentences.length > 2) {
-                    const firstHalf = sentences.slice(0, Math.ceil(sentences.length/2)).join('. ') + '.';
-                    const secondHalf = sentences.slice(Math.ceil(sentences.length/2)).join('. ');
-                    response = `${firstHalf}\n\n${secondHalf}`;
+            if (paragraphs.length === 1) {
+                // If one long paragraph, force split at suitable point
+                const sentences = paragraphs[0].split(/(?<=\. )/);
+                
+                if (isDoorstepPickup) {
+                    // For doorstep pickup, split after service description
+                    const doorstepIndex = sentences.findIndex(s => 
+                        s.toLowerCase().includes('doorstep') || 
+                        s.toLowerCase().includes('outside the hotel')
+                    );
+                    if (doorstepIndex > -1) {
+                        const firstPart = sentences.slice(0, doorstepIndex + 1).join('');
+                        const secondPart = sentences.slice(doorstepIndex + 1).join('');
+                        response = `${firstPart}\n\n${secondPart.trim()}`;
+                    }
+                } else {
+                    // For bus stops, split at maps URL if present
+                    const mapsIndex = paragraphs[0].indexOf('View location:');
+                    if (mapsIndex > -1) {
+                        const firstPart = paragraphs[0].slice(0, mapsIndex + 'View location: View location on Google Maps 📍'.length);
+                        const secondPart = paragraphs[0].slice(mapsIndex + 'View location: View location on Google Maps 📍'.length);
+                        response = `${firstPart}\n\n${secondPart.trim()}`;
+                    } else {
+                        // Otherwise split at midpoint
+                        const midpoint = Math.ceil(sentences.length / 2);
+                        response = `${sentences.slice(0, midpoint).join('')}\n\n${sentences.slice(midpoint).join('')}`;
+                    }
                 }
+            } else if (paragraphs.length > 2) {
+                // Keep first paragraph and combine rest
+                response = `${paragraphs[0]}\n\n${paragraphs.slice(1).join(' ')}`;
             }
 
-            console.log('Final response length:', response.length);
-            console.log('Final paragraphs:', response.split('\n\n').length);
+            // Final cleanup
+            response = response.replace(/\n{3,}/g, '\n\n')
+                             .replace(/[ ]{2,}/g, ' ')
+                             .trim();
+
+            // Remove duplicate map emojis and URLs
+            response = response.replace(/(View location:.*?📍)\s*\1/g, '$1')
+                             .replace(/(View location on Google Maps 📍)\s*\1/g, '$1');
+
+            console.log('Formatted response:', response);
 
             // Update messages with timestamps
             context.messages.push({
