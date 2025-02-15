@@ -2507,6 +2507,41 @@ const getRelevantKnowledge = (query, context = {}) => {
         results.confidence = 0.9;
     }
 
+    // Enhanced flight destination handling
+    if (query.match(/\b(to|for)\s+([a-z\s]+)$/i)) {
+        const destinations = {
+            'europe': [
+                'london', 'paris', 'amsterdam', 'berlin', 'rome', 'dublin',
+                'copenhagen', 'stockholm', 'oslo', 'helsinki', 'munich',
+                'frankfurt', 'barcelona', 'madrid', 'milan', 'zurich',
+                'vienna', 'brussels', 'europe', 'european'
+            ],
+            'us_canada': [
+                'us', 'usa', 'united states', 'canada', 'new york', 'toronto',
+                'boston', 'chicago', 'miami', 'los angeles', 'san francisco'
+            ]
+        };
+
+        // Check for destination in current message
+        for (const [region, cities] of Object.entries(destinations)) {
+            if (cities.some(city => query.toLowerCase().includes(city.toLowerCase()))) {
+                if (context?.flightTime) {
+                    const flightResponse = generateFlightResponse(
+                        `flight to ${region} at ${context.flightTime}`,
+                        { ...context, flightDestination: region }
+                    );
+                    results.relevantInfo.push(flightResponse);
+                    results.context = {
+                        ...context,
+                        lastTopic: 'flight_timing',
+                        flightDestination: region
+                    };
+                    results.confidence = 0.95;
+                    return results;
+                }
+            }
+        }
+
     // Enhanced flight query handling
     const isTimeResponse = query.match(/(\d{1,2})(?::(\d{2}))?\s*(am|pm)?/i);
     const isFlightRelated = query.includes('flight') || 
@@ -2545,32 +2580,6 @@ const getRelevantKnowledge = (query, context = {}) => {
             }
             console.log('Enhanced flight query:', enhancedQuery);
         }
-
-        // Add destination handling
-        if (query.match(/\b(to|for)\s+([a-z\s]+)$/i)) {
-            const destinations = {
-                'europe': [
-                    'london', 'paris', 'amsterdam', 'berlin', 'rome', 'dublin',
-                    'copenhagen', 'stockholm', 'oslo', 'helsinki', 'munich',
-                    'frankfurt', 'barcelona', 'madrid', 'milan', 'zurich',
-                    'vienna', 'brussels', 'europe', 'european'
-                ],
-                'us_canada': [
-                    'us', 'usa', 'united states', 'canada', 'new york', 'toronto',
-                    'boston', 'chicago', 'miami', 'los angeles', 'san francisco'
-                ]
-            };
-
-            // Check destination against known cities
-            for (const [region, cities] of Object.entries(destinations)) {
-                if (cities.some(city => query.toLowerCase().includes(city.toLowerCase()))) {
-                    if (context?.flightTime) {
-                        enhancedQuery = `flight to ${region} at ${context.flightTime}`;
-                    }
-                    break;
-                }
-            }
-        }        
 
         console.log('Processing flight query:', { original: query, enhanced: enhancedQuery });
         
