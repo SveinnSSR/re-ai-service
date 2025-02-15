@@ -2,8 +2,8 @@
 
 const flybusKnowledge = {
     basic_info: {
-        name: "Flybus Airport Transfer",
-        service_types: {
+        name: "Flybus Airport Transfer",  // KEEP
+        service_types: {  // KEEP & ENHANCE
             standard: {
                 name: ["Flybus"],
                 description: "Direct airport transfer service between Keflavík Airport and BSÍ Bus Terminal in Reykjavík",
@@ -19,24 +19,37 @@ const flybusKnowledge = {
                 return_savings: 999
             }
         },
-        mainInfo: {
-            core_message: "The Flybus operates direct transfers between Keflavík Airport and Reykjavík, with service guaranteed for every flight. Our carbon-neutral coaches offer comfortable travel with free WiFi onboard.",
-            service_options: {
+        mainInfo: {  // ENHANCE
+            core_message: "The Flybus operates direct transfers between Keflavík Airport and Reykjavík, with service guaranteed for every flight.",
+            key_features: [  // NEW - from "Five reasons" in document
+                "Quick and reliable - 45 minutes to BSÍ Terminal",
+                "Convenient - aligned with all flight schedules",
+                "Affordable - fraction of taxi cost",
+                "Sustainable - carbon-neutral coaches",
+                "Comfortable - modern fleet with free WiFi"
+            ],
+            service_options: {  // KEEP
                 standard: "Direct service to BSÍ Bus Terminal",
                 plus: "Extended service with hotel pickup/dropoff"
             }
         },
-        supportingInfo: {
+        supportingInfo: {  // ENHANCE
             journey_details: "The journey takes 45 minutes to BSÍ Bus Terminal, with Flybus+ service requiring an additional 30 minutes for hotel transfers.",
-            guarantees: "We guarantee seats for all passengers and wait for delayed flights, ensuring stress-free travel to and from the airport.",
-            booking_note: "Tickets can be booked online to skip the lines, with free cancellation according to our policy."
+            service_guarantees: [  // MOVED from root level
+                "Seats always guaranteed",
+                "Service for every arriving and departing flight",
+                "Direct transportation to/from Reykjavík"
+            ],
+            booking_info: {  // NEW - from document
+                methods: ["Online booking", "At airport", "At BSÍ terminal"],
+                cancellation: "Free cancellation according to policy",
+                contact: {
+                    phone: "+354 599 0000",
+                    email: "info@icelandia.is"
+                }
+            }
         },
-        service_guarantees: [
-            "Seats always guaranteed",
-            "Service for every arriving and departing flight",
-            "Direct transportation to/from Reykjavík"
-        ],
-        highlights: [
+        highlights: [  // KEEP
             {
                 title: "Carbon-neutral transfer",
                 description: "New, comfortable & carbon-neutral coaches for sustainable travel"
@@ -58,10 +71,67 @@ const flybusKnowledge = {
                 description: "Free Wi-Fi on all buses"
             }
         ],
-        keywords: ["flybus", "airport transfer", "keflavik", "reykjavik", "bsi", "shuttle", "flybus+", "flybus plus", "plus"],
-        context_triggers: ["airport", "transfer", "transport", "bus", "kef", "shuttle", "plus"]
+        keywords: ["flybus", "airport transfer", "keflavik", "reykjavik", "bsi", "shuttle", "flybus+", "flybus plus", "plus"],  // KEEP
+        context_triggers: ["airport", "transfer", "transport", "bus", "kef", "shuttle", "plus"]  // KEEP
+    },
+    policies_and_procedures: {
+        mainInfo: {
+            core_message: "Flexible tickets and convenient booking options for hassle-free travel",
+            key_features: [
+                "Tickets valid for any departure time",
+                "Late night arrivals accommodated",
+                "Free cancellation available",
+                "Multiple booking channels"
+            ]
+        },
+        supportingInfo: {
+            contact: {
+                general: "+354 599 0000",
+                urgent: "+354 580 5400",
+                email: "info@icelandia.is"
+            },
+            hours: "Refund department open weekdays 09:00-17:00 GMT"
+        },
+        ticket_flexibility: {
+            validity: {
+                timeframe: "Valid for any departure",
+                midnight_crossing: "Valid even if arrival crosses midnight",
+                late_arrivals: "Service guaranteed for all flight arrivals"
+            },
+            booking_changes: {
+                method: "Contact via email or phone",
+                timing: "Changes possible with 24 hours notice",
+                requirements: "Include booking number in communication"
+            }
+        },
+        refund_process: {
+            timeframe: "Up to 2 weeks for review",
+            procedure: "Submit request via email or phone",
+            documentation: "Booking number required"
+        },
+        cancellation: {
+            policy: "Free cancellation according to policy",
+            timing: "Notify before scheduled departure",
+            method: "Email or call customer service"
+        },
+        keywords: [
+            "ticket", "booking", "cancel", "refund", "change", 
+            "flexible", "valid", "midnight", "late", "arrival"
+        ]
     },
     service_details: {
+        mainInfo: {
+            core_message: "Professional fleet and service connecting Keflavík Airport and Reykjavík",
+            fleet_overview: {
+                description: "One of the best bus fleets in Iceland",
+                fleet_size: "80 vehicles",
+                primary_features: ["Modern coaches", "Professional drivers", "Regular maintenance"]
+            }
+        },
+        supportingInfo: {
+            service_standards: "Regular maintenance and professional drivers ensure passenger safety",
+            contact: "+354 599 0000"
+        },
         fleet: {
             description: "One of the best bus fleets in Iceland",
             vehicles: {
@@ -69,7 +139,8 @@ const flybusKnowledge = {
                 types: [
                     {
                         type: "Standard coaches",
-                        capacity: "6 to 70 seats"
+                        capacity: "6 to 70 seats",
+                        features: ["Free WiFi", "Air conditioning", "Comfortable seating"]
                     },
                     {
                         type: "4x4 coaches",
@@ -91,6 +162,15 @@ const flybusKnowledge = {
                     "Professional drivers",
                     "Enhanced passenger safety protocols"
                 ]
+            },
+            animals: {
+                allowed: false,
+                policy: "Animals not permitted except certified service animals",
+                reason: "For comfort and safety of all passengers",
+                exceptions: {
+                    service_animals: true,
+                    certification: "Proof of certification may be required"
+                }
             }
         },
         route_details: {
@@ -107,6 +187,16 @@ const flybusKnowledge = {
                 downtown: "Large buses not allowed in downtown Reykjavík",
                 solution: "Minibus transfer for hotel service",
                 walking_distance: "1-5 minutes from designated bus stops to hotels"
+            },
+            stops: {
+                gardabaer: {
+                    location: "Garðabær Aktu Taktu Gas station (Bus Stop Ásgarður C)",
+                    timing: "5-10 minutes after BSÍ departure"
+                },
+                hafnarfjordur: {
+                    location: "Fjörukráin Hotel Viking",
+                    timing: "10-15 minutes after BSÍ departure"
+                }
             }
         },
         purchase_options: {
@@ -121,8 +211,14 @@ const flybusKnowledge = {
             },
             airport: {
                 method: "Ticket machines",
-                location: "Keflavík airport",
-                availability: "24/7"
+                location: "Keflavík airport, near main exit",
+                availability: "24/7",
+                desk: "Front desk available for assistance"
+            },
+            flexibility: {
+                date_valid: "Tickets valid for any departure",
+                midnight_crossing: "Valid even if arrival crosses midnight",
+                changes: "Booking changes possible with 24 hours notice"
             }
         },
         service_guarantees: {
@@ -134,10 +230,22 @@ const flybusKnowledge = {
         keywords: [
             "coach", "bus", "vehicle", "fleet", "smoking", 
             "route", "distance", "tickets", "booking", "purchase",
-            "safety", "guarantee", "vehicle", "transport"
+            "safety", "guarantee", "vehicle", "transport", "animal",
+            "pet", "service animal", "stops", "gardabaer", "hafnarfjordur"
         ]
     },
     pickup_timing: {
+        mainInfo: {
+            core_message: "Pickup service details and timing guidelines for Flybus passengers",
+            key_times: {
+                pickup_window: "30 minutes before scheduled departure",
+                arrival_flexibility: "Bus arrives within this 30-minute window"
+            }
+        },
+        supportingInfo: {
+            contact_info: "+354 599 0000",
+            missed_pickup: "Own transport to BSÍ required if pickup is missed"
+        },
         general_rules: {
             window: "30 minutes before departure",
             arrival_window: "Bus could arrive anytime within the 30-minute window",
@@ -151,16 +259,40 @@ const flybusKnowledge = {
             "Pickup time and departure time are different",
             "Pickup starts 30 minutes before scheduled departure",
             "Must be ready and visible at pickup location",
-            "Missing pickup requires own transport to BSÍ"
+            "Missing pickup requires own transport to BSÍ",
+            "If no one is visible at stop, bus will not stop"
         ],
         city_center: {
             restrictions: "Some city center locations require using nearest bus stop",
-            dropoff: "Drop-off at same location as pickup in restricted areas"
+            dropoff: "Drop-off at same location as pickup in restricted areas",
+            walking: "Maximum 10-minute walk to designated bus stops"
+        },
+        booking_requirements: {
+            advance_notice: "Book pickup service in advance",
+            changes: "Pickup location changes possible with 2 hours notice",
+            contact: "+354 599 0000"
         },
         responsibility: "Passengers are responsible for being ready and visible for pickup",
-        contact: "+354 599 0000"
+        contact: "+354 599 0000",
+        keywords: [
+            "pickup", "timing", "schedule", "wait", "departure",
+            "window", "visible", "ready", "late", "missed"
+        ]
     },
     age_info: {
+        mainInfo: {
+            core_message: "Clear age categories with specific pricing and group limits for Flybus services",
+            key_points: [
+                "Adults (16+) pay full fare",
+                "Youth (6-15) travel at discounted rates",
+                "Children (1-5) travel free with adult"
+            ]
+        },
+        supportingInfo: {
+            limits: "Youth and child travelers must be accompanied by adults",
+            group_rules: "Maximum 40 youth and 2 children per adult",
+            verification: "Age verification may be required"
+        },
         adults: {
             range: "16-99 years",
             description: "Full fare",
@@ -176,11 +308,24 @@ const flybusKnowledge = {
             description: "Travel free when accompanied by an adult",
             notes: "Maximum 2 children per adult"
         },
+        special_cases: {
+            infants: {
+                range: "Under 1 year",
+                policy: "Cannot be accommodated due to safety requirements",
+                reason: "Require 3-point seat belts not available on buses"
+            },
+            child_seats: {
+                availability: "Available for children 1-3 years",
+                booking: "Must be requested 24 hours in advance",
+                notes: "Children 3+ years can use normal seat belts"
+            }
+        },
         restrictions: {
             youth_per_adult: 40,
             children_per_adult: 2,
             notes: "Age verification may be required"
-        }
+        },
+        keywords: ["age", "adult", "youth", "child", "infant", "baby", "seat", "restriction", "limit"]
     },
     pricing: {
         mainInfo: {
@@ -199,7 +344,13 @@ const flybusKnowledge = {
                     adult_return: 9399,
                     savings: 999
                 }
-            }
+            },
+            key_benefits: [
+                "Free cancellation available",
+                "No booking fees",
+                "Return ticket savings",
+                "Guaranteed seats"
+            ]
         },
         supportingInfo: {
             age_categories: {
@@ -208,7 +359,14 @@ const flybusKnowledge = {
                 children: "Ages 1-5 years travel free"
             },
             booking_notes: "Free cancellation available and no booking fees. Return tickets include savings.",
-            group_limits: "Maximum 40 youth per adult and 2 children per adult."
+            group_limits: "Maximum 40 youth per adult and 2 children per adult.",
+            extras: {
+                luggage: {
+                    standard: "2 bags included (max 23 kg each)",
+                    extra_bag: "1000 ISK per additional item",
+                    special_items: "2500 ISK for large items (bikes, golf clubs)"
+                }
+            }
         },
         standard: {
             name: "Flybus",
@@ -313,14 +471,38 @@ const flybusKnowledge = {
             "Guaranteed seats on all departures",
             "Service for every arriving and departing flight"
         ],
-        keywords: ["price", "cost", "fee", "rates", "ticket", "booking", "return", "plus", "one way", "oneway", "youth", "child", "children"]
+        keywords: [
+            "price", "cost", "fee", "rates", "ticket", "booking", 
+            "return", "plus", "one way", "oneway", "youth", "child", 
+            "children", "savings", "discount", "free", "ISK", "currency"
+        ]
     },
     schedules: {
+        mainInfo: {
+            core_message: {
+                airport_arrivals: "Flybus meets every arriving flight at Keflavík Airport",
+                city_departures: "Regular departures from BSÍ Terminal to Keflavík Airport throughout the day"
+            },
+            key_features: [
+                "Service for all flights, including late night arrivals",
+                "Flexible tickets valid for any departure",
+                "Guaranteed connection with your flight"
+            ]
+        },
+        supportingInfo: {
+            arrival_notes: "Bus departs 35-45 minutes after each flight arrival",
+            pickup_timing: "Hotel/bus stop pickup starts 30 minutes before BSÍ departure",
+            additional_stops: {
+                gardabaer: "5-10 minutes after BSÍ departure",
+                hafnarfjordur: "10-15 minutes after BSÍ departure"
+            }
+        },
         airport_to_city: {
             description: "Flybus operates in connection with all arriving flights at Keflavik Airport",
             timing: "Bus departs 35-45 minutes after each flight arrival",
             location: "Right outside the terminal area",
-            flexibility: "Tickets are flexible on date, take any available bus"
+            flexibility: "Tickets are flexible on date, take any available bus",
+            pickup_point: "Located at front desk near main exit"
         },
         city_to_airport: {
             base_location: "BSÍ Bus Terminal",
@@ -346,11 +528,25 @@ const flybusKnowledge = {
             timing_guidelines: {
                 europe_flights: "Arrive 2.5 hours before departure",
                 us_canada_flights: "Arrive 3 hours before departure"
-            }
+            },
+            schedule_notes: "Reykjavik Excursions reserves the right to alter the timetable without further notice due to possible changes in flight schedules. Estimated arrival time can vary."
         },
-        keywords: ["schedule", "timetable", "departure", "arrival", "time", "when"]
+        keywords: ["schedule", "timetable", "departure", "arrival", "time", "when", "late", "early", "pickup", "dropoff", "flight"]
     },
     luggage: {
+        mainInfo: {
+            core_message: "Standard allowance includes two checked bags and one carry-on item",
+            key_features: {
+                checked_bags: "Two bags up to 23 kg each",
+                carry_on: "One small personal item",
+                extra_services: "BagDrop service available with 10% Flybus discount"
+            }
+        },
+        supportingInfo: {
+            extra_fees: "Additional bags 1000 ISK each, special items 2500 ISK",
+            policies: "Prompt baggage claim required, no liability for valuables",
+            contact: "Pre-arrange extra luggage: info@icelandia.is or +354 599 0000"
+        },
         standard_allowance: {
             main_luggage: {
                 pieces: 2,
@@ -378,13 +574,32 @@ const flybusKnowledge = {
                 description: "Per additional item (golf bags, skis, etc.)"
             }
         },
+        bagdrop_service: {
+            available: true,
+            locations: ["BSI Bus Terminal", "Home Pickup"],
+            discount: "10% discount with Flybus ticket",
+            booking_url: "https://www.bagdrop.is/?culture=EN"
+        },
         policies: [
             "No liability for fragile valuables or perishable articles",
             "All baggage must be claimed promptly upon arrival"
         ],
-        keywords: ["luggage", "bag", "suitcase", "bicycle", "bike", "weight", "extra"]
+        keywords: ["luggage", "bag", "suitcase", "bicycle", "bike", "weight", "extra", "baggage", "carry-on", "backpack", "golf", "ski"]
     },
     special_services: {
+        mainInfo: {
+            core_message: "Special assistance available for families and passengers with mobility needs",
+            key_services: [
+                "Child seats available upon request",
+                "Wheelchair accessibility for manual chairs",
+                "Service animal accommodation"
+            ]
+        },
+        supportingInfo: {
+            booking: "Pre-book special services 24 hours in advance",
+            contact: "Call +354 599 0000 for assistance",
+            restrictions: "Some services subject to availability"
+        },
         child_seats: {
             availability: "Available upon request",
             booking: "Contact Customer Service 24 hours in advance",
@@ -401,13 +616,32 @@ const flybusKnowledge = {
                     age: "Under 1 year",
                     restriction: "Cannot be accommodated due to safety requirements"
                 }
-            ]
+            ],
+            notes: "Limited number of seats available, early booking recommended"
         },
         wheelchair_access: {
             standard: "Accessible for passengers with foldable manual wheelchairs who can board with minimal assistance",
             electric: "Electric wheelchair users referred to Prime Tours",
+            assistance: "Staff available to help with boarding",
+            contact: "Prime Tours for electric wheelchairs: https://www.primeshuttle.is/accessible.html",
             keywords: ["wheelchair", "accessible", "disability", "mobility"]
-        }
+        },
+        service_animals: {
+            policy: {
+                allowed: true,
+                requirements: "Certified service animals only",
+                documentation: "Certification proof may be required"
+            },
+            restrictions: {
+                pets: "Regular pets not permitted",
+                reasons: ["Passenger allergies", "Safety considerations"]
+            }
+        },
+        keywords: [
+            "wheelchair", "accessible", "disability", "mobility",
+            "child seat", "car seat", "baby", "service animal",
+            "assistance", "special needs", "help", "aid"
+        ]
     },
     locations: {
         general_info: {
@@ -885,6 +1119,67 @@ const flybusKnowledge = {
             "pickup", "drop off", "bus stop", "location", "hotel", 
             "terminal", "bsi", "where", "hafnarfjordur", "gardabaer", 
             "downtown"
+        ]
+    },
+    bsi_terminal: {  // New section
+        mainInfo: {
+            core_message: "BSÍ Bus Terminal is the main transport hub in central Reykjavík",
+            location: {
+                address: "Vatnsmýrarvegur 10, 101 Reykjavík",
+                coordinates: {
+                    lat: "64.1379278",
+                    lng: "-21.9349849"
+                },
+                maps_url: "https://www.google.com/maps/dir/64.1379278,-21.9349849"
+            },
+            access: {
+                walking: "10-20 minutes from downtown Reykjavík",
+                public_transport: "Connected to local bus network",
+                parking: "Available on-site"
+            }
+        },
+        supportingInfo: {
+            arrival_instructions: {
+                timing: "Arrive 15 minutes before departure",
+                check_in: "Show ticket at counter or on mobile device"
+            },
+            transport_options: {
+                walking: {
+                    recommended: "Most predictable option from downtown",
+                    time: "10-20 minutes depending on location"
+                },
+                public_transport: "Local bus connections available",
+                alternative: "HOPP electric scooters available in summer"
+            }
+        },
+        facilities: {
+            amenities: [
+                "Ticket office",
+                "Waiting area",
+                "Café/restaurant",
+                "Tourist information",
+                "Luggage storage",
+                "Public restrooms",
+                "Free WiFi"
+            ],
+            accessibility: {
+                wheelchair: "Terminal is wheelchair accessible",
+                luggage: "Assistance available for heavy luggage"
+            }
+        },
+        operating_hours: {
+            ticket_office: "Daily from early morning until late evening",
+            terminal: "Open for all scheduled departures"
+        },
+        services: {
+            flybus: "All Flybus departures and arrivals",
+            tours: "Departure point for day tours",
+            domestic: "Connections to domestic bus services"
+        },
+        keywords: [
+            "BSI", "terminal", "station", "bus station", "central", 
+            "departure", "arrival", "hub", "terminal", "vatnsmyrarvegur",
+            "downtown", "centre", "center"
         ]
     }
 };
@@ -1790,6 +2085,65 @@ const getRelevantKnowledge = (query, context = {}) => {
             }
         });
         results.confidence = 0.9;
+    }
+    
+    // Policy and procedures queries
+    if (query.includes('ticket') || query.includes('booking') || 
+        query.includes('cancel') || query.includes('refund') || 
+        query.includes('change') || query.includes('flexible') ||
+        query.includes('midnight') || query.includes('late night') ||
+        query.match(/\b(valid|policy|policies)\b/i)) {
+        
+        results.relevantInfo.push({
+            type: 'policies',
+            data: {
+                mainInfo: flybusKnowledge.policies_and_procedures.mainInfo,
+                supportingInfo: flybusKnowledge.policies_and_procedures.supportingInfo,
+                relevant_policy: query.includes('cancel') ? 'cancellation' :
+                               query.includes('refund') ? 'refund_process' :
+                               query.includes('midnight') || query.includes('late') ? 'ticket_flexibility' :
+                               'general'
+            }
+        });
+        results.confidence = 0.95;
+    }
+
+    // BSÍ Terminal queries
+    if (query.includes('bsi') || query.includes('terminal') || 
+        query.includes('station') || query.includes('central') ||
+        query.match(/\b(walk|walking|get to|reach|find)\b.*\b(terminal|bsi|station)\b/i) ||
+        query.match(/\bhow.*\bto.*\bbsi\b/i) ||
+        query.match(/\bwhere.*\b(terminal|bsi|station)\b/i)) {
+        
+        results.relevantInfo.push({
+            type: 'terminal',
+            data: {
+                mainInfo: flybusKnowledge.bsi_terminal.mainInfo,
+                supportingInfo: flybusKnowledge.bsi_terminal.supportingInfo,
+                facilities: flybusKnowledge.bsi_terminal.facilities,
+                // Add maps URL if it's a location query
+                maps_url: query.match(/\b(where|location|find|address)\b/i) ? 
+                         flybusKnowledge.bsi_terminal.mainInfo.location.maps_url : null
+            }
+        });
+        results.confidence = 0.95;
+    }
+
+    // Enhanced facilities/amenities queries
+    if (query.includes('wifi') || query.includes('bathroom') || 
+        query.includes('toilet') || query.includes('cafe') ||
+        query.includes('food') || query.includes('wait') ||
+        query.includes('facility') || query.includes('amenity')) {
+        
+        results.relevantInfo.push({
+            type: 'facilities',
+            data: {
+                location: "BSÍ Bus Terminal",
+                amenities: flybusKnowledge.bsi_terminal.facilities.amenities,
+                accessibility: flybusKnowledge.bsi_terminal.facilities.accessibility
+            }
+        });
+        results.confidence = 0.9;
     }    
 
     // Location and hotel related queries
@@ -1877,7 +2231,7 @@ const getRelevantKnowledge = (query, context = {}) => {
             results.confidence = 0.95;
             return results;
         }
-        
+
         // Add location restrictions check
         const isRestrictionQuery = query.match(/\b(restriction|limited|cannot|area|access)\b/i);
         if (isRestrictionQuery) {
