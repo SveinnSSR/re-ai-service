@@ -1372,28 +1372,12 @@ const detectQueryType = (query) => {
     // Seat guarantee queries
     if (query.match(/\b(guarantee|guaranteed|seat|seats|available)\b/i) && 
         (query.includes('seat') || query.includes('seats'))) {
-        results.relevantInfo.push({
-            type: 'service_info',
-            data: {
-                mainInfo: flybusKnowledge.basic_info.mainInfo,
-                service_guarantees: flybusKnowledge.basic_info.mainInfo.service_guarantees,
-                confidence: 0.95
-            }
-        });
-        return results;
+        return 'service_info';
     }
 
     // Operating schedule queries
     if (query.match(/\b(year round|all year|operating hours|when.*operate|run.*all year|open.*all year)\b/i)) {
-        results.relevantInfo.push({
-            type: 'service_info',
-            data: {
-                mainInfo: flybusKnowledge.basic_info.mainInfo,
-                operating_info: flybusKnowledge.basic_info.mainInfo.service_guarantees.operating_schedule,
-                confidence: 0.95
-            }
-        });
-        return results;
+        return 'service_info';
     }
     
     // Service information queries
