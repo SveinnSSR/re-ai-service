@@ -2602,33 +2602,37 @@ const getRelevantKnowledge = (query, context = {}) => {
         const isChildQuery = query.includes('child') || query.includes('kid') || 
                            query.includes('baby') || query.includes('infant');
 
-        // Build pricing response
+        // Build pricing response with clear paragraph separation
         const pricingData = {
             type: 'pricing',
             subtype: serviceType,
             data: {
                 mainInfo: {
-                    core_prices: {
-                        base_price: flybusKnowledge.pricing.mainInfo.quick_rates[serviceType].adult_oneway,
-                        service_type: flybusKnowledge.pricing.mainInfo.core_message[serviceType],
-                        youth_rate: isYouthQuery ? flybusKnowledge.pricing[serviceType].rates.youth.price : null,
-                        child_policy: isChildQuery ? flybusKnowledge.pricing.supportingInfo.age_categories.children : null
+                    core_message: `The ${serviceType === 'plus' ? 'Flybus+ service includes hotel pickup/dropoff and is' : 'standard Flybus service is'} priced at ${flybusKnowledge.pricing.mainInfo.quick_rates[serviceType].adult_oneway} ISK for a one-way trip.`,
+                    price_details: {
+                        adult: flybusKnowledge.pricing.mainInfo.quick_rates[serviceType].adult_oneway,
+                        youth: flybusKnowledge.pricing[serviceType].rates.youth.price,
+                        children: "Free for ages 1-5 years"
                     }
                 },
                 supportingInfo: {
-                    booking_info: flybusKnowledge.pricing.supportingInfo.booking_notes,
-                    return_option: isReturnQuery ? {
-                        price: flybusKnowledge.pricing.mainInfo.quick_rates[serviceType].adult_return,
-                        savings: flybusKnowledge.pricing.mainInfo.quick_rates[serviceType].savings
-                    } : null,
-                    age_categories: (!isYouthQuery && !isChildQuery) ? {
-                        youth: flybusKnowledge.pricing.supportingInfo.age_categories.youth,
-                        children: flybusKnowledge.pricing.supportingInfo.age_categories.children
-                    } : null,
-                    contact: "+354 599 0000"
+                    paragraph_break: "\n\n", // Explicit paragraph break
+                    booking_info: isReturnQuery ? 
+                        `Return tickets are available for ${flybusKnowledge.pricing.mainInfo.quick_rates[serviceType].adult_return} ISK, saving ${flybusKnowledge.pricing.mainInfo.quick_rates[serviceType].savings} ISK.` :
+                        flybusKnowledge.pricing.supportingInfo.booking_notes,
+                    age_info: `Youth (6-15 years) can travel for ${flybusKnowledge.pricing[serviceType].rates.youth.price} ISK, and children (1-5 years) travel free with an adult.`,
+                    contact: "For booking assistance, contact us at +354 599 0000."
                 }
             }
         };
+
+        // Add return info if queried
+        if (isReturnQuery) {
+            pricingData.data.mainInfo.return_info = {
+                price: flybusKnowledge.pricing.mainInfo.quick_rates[serviceType].adult_return,
+                savings: flybusKnowledge.pricing.mainInfo.quick_rates[serviceType].savings
+            };
+        }
 
         results.relevantInfo.push(pricingData);
         results.confidence = 0.95;
