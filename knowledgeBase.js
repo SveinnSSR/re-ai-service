@@ -2156,8 +2156,17 @@ const getRelevantKnowledge = (query, context = {}) => {
     }
 
     // Fleet and vehicle queries
-    if (query.includes('coach') || query.includes('bus') || query.includes('vehicle') || 
-        query.includes('fleet') || query.includes('transport') || query.includes('driver')) {
+    if (
+        // Match explicit fleet-related queries
+        query.match(/\b(what|which|how|tell.*about)\s+(fleet|vehicles?|coaches?)\b/i) ||
+        // Direct questions about fleet/vehicle types
+        query.match(/\b(fleet|vehicle|coach)\s+(type|size|capacity|number)\b/i) ||
+        // Questions about vehicle features/capabilities
+        query.match(/\b(vehicle|coach|bus)\s+(features?|amenities|capabilities|equipment)\b/i) ||
+        // Specific questions about drivers or transportation system
+        (query.match(/\b(drivers?|transportation system)\b/i) && 
+         !query.match(/\b(pickup|drop.*off|schedule|time|when)\b/i))
+    ) {
         results.relevantInfo.push({
             type: 'fleet_info',
             data: flybusKnowledge.service_details.fleet
