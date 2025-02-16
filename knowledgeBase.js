@@ -2113,6 +2113,48 @@ const getRelevantKnowledge = (query, context = {}) => {
         results.confidence = 0.9;
     }
 
+    // Service information and policy queries
+    if (query.includes('guarantee') || query.includes('seat') || 
+        query.includes('year round') || query.includes('operate') ||
+        query.includes('discount') || query.includes('infant') ||
+        query.includes('pay') || query.includes('payment')) {
+        
+        let infoType, mainMessage;
+        
+        if (query.includes('guarantee') || query.includes('seat')) {
+            infoType = 'seats';
+            mainMessage = flybusKnowledge.basic_info.mainInfo.service_guarantees.seats.description;
+        } else if (query.includes('year round') || query.includes('operate')) {
+            infoType = 'operating_schedule';
+            mainMessage = flybusKnowledge.basic_info.mainInfo.service_guarantees.operating_schedule.description;
+        } else if (query.includes('discount')) {
+            infoType = 'pricing';
+            mainMessage = flybusKnowledge.pricing.supportingInfo.age_categories.youth;
+        } else if (query.includes('infant')) {
+            infoType = 'age_info';
+            mainMessage = flybusKnowledge.age_info.special_cases.infants.details;
+        } else if (query.includes('pay') || query.includes('payment')) {
+            infoType = 'payment';
+            mainMessage = flybusKnowledge.service_details.purchase_options.recommended.benefits.join('. ');
+        }
+
+        results.relevantInfo.push({
+            type: 'service_info',
+            data: {
+                mainInfo: {
+                    core_message: mainMessage,
+                    type: infoType
+                },
+                supportingInfo: {
+                    contact: "+354 599 0000",
+                    hours: "Customer service available 24/7"
+                }
+            }
+        });
+        results.confidence = 0.95;
+        return results;
+    }
+
     // Fleet and vehicle queries
     if (query.includes('coach') || query.includes('bus') || query.includes('vehicle') || 
         query.includes('fleet') || query.includes('transport') || query.includes('driver')) {
