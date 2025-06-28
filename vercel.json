@@ -1,4 +1,5 @@
 {
+  "name": "re-ai-service",
   "version": 2,
   "builds": [
     {
