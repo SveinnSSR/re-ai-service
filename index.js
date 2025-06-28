@@ -496,6 +496,8 @@ const corsOptions = {
     origin: [
         'http://localhost:3000',
         'http://localhost:8080',
+        'https://re-interactive-module.app',
+        'https://re-interactive-module.vercel.app',  // NEW URL
         'https://reykjavikexcursions-chat-demo.vercel.app',
         'https://chatbot-analytics-beta.vercel.app'
     ],
