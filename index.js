@@ -18,7 +18,10 @@ import {
     calculateJourneyTime,    // Add this
     timingPatterns          // Add this
 } from './knowledgeBase.js';
-
+// Import analytics integration modules
+import { connectToDatabase } from './database.js';
+import { processMessagePair } from './messageProcessor.js';
+import { getOrCreateSession } from './sessionManager.js';
 
 // Initialize Pusher
 const pusher = new Pusher({
@@ -499,7 +502,8 @@ const corsOptions = {
         'https://re-interactive-module.app',
         'https://re-interactive-module.vercel.app',  // NEW URL
         'https://reykjavikexcursions-chat-demo.vercel.app',
-        'https://chatbot-analytics-beta.vercel.app'
+        'https://chatbot-analytics-beta.vercel.app',
+        'https://hysing.svorumstrax.is'  // Analytics dashboard
     ],
     methods: ['GET', 'POST', 'OPTIONS', 'HEAD'],
     allowedHeaders: [
@@ -556,24 +560,90 @@ const verifyApiKey = (req, res, next) => {
     next();
 };
 
-// Pusher broadcast function
-const broadcastConversation = async (userMessage, botResponse, language, topic = 'general', type = 'chat') => {
+// Enhanced broadcast function with analytics integration
+const broadcastConversation = async (userMessage, botResponse, language, topic = 'general', type = 'chat', clientSessionId = null, status = 'active') => {
     try {
-        const conversationData = {
-            id: uuidv4(),
-            timestamp: new Date().toISOString(),
+        // Skip processing for empty messages
+        if (!userMessage || !botResponse) {
+            console.log('Skipping broadcast for empty message');
+            return { success: false, reason: 'empty_message' };
+        }
+
+        // Use the message processor for MongoDB and analytics
+        const processResult = await processMessagePair(
             userMessage,
             botResponse,
-            language,
-            topic,
-            type
-        };
-
-        await pusher.trigger('chat-channel', 'conversation-update', conversationData);
-        return true;
+            {
+                sessionId: clientSessionId,
+                language: language,
+                topic: topic,
+                type: type,
+                clientId: 'reykjavik-excursions',
+                status: status
+            }
+        );
+        
+        // Check if processing was successful
+        if (processResult.success) {
+            // Handle Pusher broadcasting
+            try {
+                const sessionInfo = await getOrCreateSession(clientSessionId);
+                
+                // Create minimal conversation data for Pusher (retaining backward compatibility)
+                const conversationData = {
+                    id: sessionInfo.conversationId,
+                    sessionId: sessionInfo.sessionId,
+                    clientId: 'reykjavik-excursions',
+                    userMessage: userMessage,   // Keep for compatibility
+                    botResponse: botResponse,   // Keep for compatibility
+                    messages: [
+                        {
+                            id: processResult.userMessageId,
+                            content: userMessage,
+                            role: 'user',
+                            type: 'user'
+                        },
+                        {
+                            id: processResult.botMessageId,
+                            content: botResponse,
+                            role: 'assistant',
+                            type: 'bot'
+                        }
+                    ],
+                    startedAt: sessionInfo.startedAt,
+                    endedAt: new Date().toISOString(),
+                    language: language,
+                    topic: topic
+                };
+                
+                // Pusher-only broadcast (MongoDB and analytics already handled by processMessagePair)
+                await pusher.trigger('chat-channel', 'conversation-update', conversationData);
+            } catch (pusherError) {
+                console.error('Pusher error:', pusherError.message);
+                // Continue even if Pusher fails - critical data is already saved
+            }
+            
+            return {
+                success: true,
+                postgresqlId: processResult.postgresqlId
+            };
+        } else if (processResult.error === 'duplicate_message') {
+            return { 
+                success: true,
+                postgresqlId: null,
+                deduplicated: true
+            };
+        } else {
+            console.log('Message processor error:', processResult.error, processResult.reason);
+            return { 
+                success: false, 
+                postgresqlId: null,
+                error: processResult.error || 'processing_error'
+            };
+        }
     } catch (error) {
-        console.error('Error in broadcastConversation:', error);
-        return false;
+        console.error('Error in broadcastConversation:', error.message);
+        return { success: false, postgresqlId: null };
     }
 };
 
@@ -613,7 +683,8 @@ app.post('/chat', verifyApiKey, async (req, res) => {
                 response,
                 isIcelandic ? 'is' : 'en',
                 'greeting',
-                'direct_response'
+                'direct_response',
+                sessionId
             );
 
             return res.json({ 
@@ -761,7 +832,8 @@ app.post('/chat', verifyApiKey, async (req, res) => {
                 response,
                 isIcelandic ? 'is' : 'en',
                 'acknowledgment',
-                'direct_response'
+                'direct_response',
+                sessionId
             );
 
             return res.json({ 
@@ -786,7 +858,8 @@ app.post('/chat', verifyApiKey, async (req, res) => {
                     chatResponse.data.response,
                     isIcelandic ? 'is' : 'en',
                     'casual_chat',
-                    'direct_response'
+                    'direct_response',
+                    sessionId
                 );
 
                 return res.json({
@@ -892,7 +965,7 @@ app.post('/chat', verifyApiKey, async (req, res) => {
             // Make OpenAI request
             console.log('\n=== Making OpenAI Request ===');
             const completion = await openai.chat.completions.create({
-                model: "gpt-4-1106-preview",
+                model: "gpt-4o",
                 messages: messages,
                 temperature: 0.7,
                 max_tokens: 500
@@ -1063,13 +1136,14 @@ app.post('/chat', verifyApiKey, async (req, res) => {
             // Update context in storage
             updateContext(sessionId, context);
 
-            // Broadcast and return response
-            await broadcastConversation(
+            // Broadcast and return response with analytics
+            const broadcastResult = await broadcastConversation(
                 userMessage,
                 response,
                 isIcelandic ? 'is' : 'en',
                 context.lastTopic || 'general',
-                'gpt_response'
+                'gpt_response',
+                sessionId
             );
 
             let updatedContext;
@@ -1089,7 +1163,8 @@ app.post('/chat', verifyApiKey, async (req, res) => {
                 message: response,
                 language: isIcelandic ? 'is' : 'en',
                 sessionId: sessionId,
-                context: updatedContext
+                context: updatedContext,
+                postgresqlMessageId: broadcastResult.postgresqlId || null
             });
         }
 
@@ -1103,7 +1178,8 @@ app.post('/chat', verifyApiKey, async (req, res) => {
             unknownResponse,
             isIcelandic ? 'is' : 'en',
             'unknown',
-            'direct_response'
+            'direct_response',
+            sessionId
         );
 
         return res.json({ 
@@ -1130,6 +1206,126 @@ app.post('/chat', verifyApiKey, async (req, res) => {
     }
 });
 
+// Add feedback endpoint
+app.post('/feedback', verifyApiKey, async (req, res) => {
+    try {
+        const { messageId, isPositive, messageContent, timestamp, chatId, language, postgresqlId } = req.body;
+        
+        console.log('\n📝 Feedback received:', {
+            messageId,
+            postgresqlId,
+            isPositive
+        });
+        
+        // Connect to MongoDB
+        const { db } = await connectToDatabase();
+        
+        // Determine message type
+        const messageType = determineMessageType(messageContent, language);
+        
+        // Store feedback in MongoDB
+        await db.collection('message_feedback').insertOne({
+            messageId,
+            postgresqlId,
+            isPositive,
+            messageContent,
+            messageType,
+            timestamp: new Date(timestamp),
+            chatId,
+            language,
+            createdAt: new Date(),
+            clientId: 'reykjavik-excursions'
+        });
+        
+        console.log('💾 Feedback saved to MongoDB');
+
+        // Forward feedback to analytics system
+        try {
+            console.log('📤 Forwarding feedback to analytics system');
+            
+            const analyticsResponse = await fetch('https://hysing.svorumstrax.is/api/public-feedback', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    messageId: messageId,
+                    postgresqlId: postgresqlId,
+                    rating: isPositive,
+                    comment: messageContent,
+                    messageType: messageType,
+                    clientId: 'reykjavik-excursions'
+                })
+            });
+            
+            const responseText = await analyticsResponse.text();
+            
+            if (analyticsResponse.ok) {
+                console.log('✅ Feedback successfully forwarded to analytics');
+            } else {
+                console.error('❌ Error from analytics:', responseText);
+            }
+        } catch (forwardError) {
+            console.error('❌ Error forwarding feedback:', forwardError);
+            // We don't fail the request if forwarding fails
+        }
+        
+        return res.status(200).json({
+            success: true,
+            message: 'Feedback stored successfully',
+            messageType: messageType
+        });
+    } catch (error) {
+        console.error('\n❌ Error storing feedback:', error);
+        return res.status(500).json({
+            success: false,
+            message: 'Failed to store feedback'
+        });
+    }
+});
+
+// Helper function to determine message type
+function determineMessageType(content, language) {
+    if (!content) return 'unknown';
+    
+    const lowerContent = content.toLowerCase();
+    const isIcelandic = language === 'is';
+    
+    if (lowerContent.includes('price') || lowerContent.includes('cost') || 
+        (isIcelandic && lowerContent.includes('verð'))) {
+        return 'pricing';
+    }
+    
+    if (lowerContent.includes('schedule') || lowerContent.includes('time') || 
+        lowerContent.includes('departure') || lowerContent.includes('arrival') ||
+        (isIcelandic && (lowerContent.includes('tími') || lowerContent.includes('brottför')))) {
+        return 'schedule';
+    }
+    
+    if (lowerContent.includes('pickup') || lowerContent.includes('hotel') || 
+        lowerContent.includes('bus stop') ||
+        (isIcelandic && (lowerContent.includes('sækja') || lowerContent.includes('hótel')))) {
+        return 'pickup_location';
+    }
+    
+    if (lowerContent.includes('luggage') || lowerContent.includes('bag') ||
+        (isIcelandic && (lowerContent.includes('farangur') || lowerContent.includes('tösku')))) {
+        return 'luggage';
+    }
+    
+    if (lowerContent.includes('flybus+') || lowerContent.includes('service') ||
+        (isIcelandic && lowerContent.includes('þjónustu'))) {
+        return 'services';
+    }
+    
+    if (lowerContent.includes('book') || lowerContent.includes('reservation') ||
+        (isIcelandic && (lowerContent.includes('bóka') || lowerContent.includes('pöntun')))) {
+        return 'booking';
+    }
+    
+    return 'general';
+}
+
 // Start server
 const PORT = process.env.PORT || 8080;
 app.listen(PORT, () => {
@@ -1139,4 +1335,6 @@ app.listen(PORT, () => {
     console.log('OpenAI API Key configured:', !!process.env.OPENAI_API_KEY);
     console.log('API Key:', !!process.env.API_KEY ? '(configured)' : '(missing)');
     console.log('Pusher Config:', !!process.env.PUSHER_APP_ID ? '(configured)' : '(missing)');
+    console.log('MongoDB URI:', !!process.env.MONGODB_URI ? '(configured)' : '(missing)');
+    console.log('Analytics API Key:', !!process.env.ANALYTICS_API_KEY ? '(configured)' : '(missing)');
 });
